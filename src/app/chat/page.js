@@ -5,6 +5,8 @@ import styles from './page.module.css';
 import Settings from '../components/Settings';
 import ChatMessage from '../components/ChatMessage';
 import ClientOnly from '../components/ClientOnly';
+import ApiKeyInfo from '../components/ApiKeyInfo';
+import EnvTest from '../components/EnvTest';
 import { streamMessage } from '../api/siliconflow';
 import { saveSettings, loadSettings, saveHistory, loadHistory, isClient, DEFAULT_API_KEY, getApiKey } from '../utils/storage';
 
@@ -296,6 +298,16 @@ export default function ChatPage() {
           onSave={handleSaveSettings}
         />
       </ClientOnly>
+      
+      <ClientOnly>
+        <ApiKeyInfo />
+      </ClientOnly>
+      
+      {process.env.NODE_ENV === 'development' && (
+        <ClientOnly>
+          <EnvTest />
+        </ClientOnly>
+      )}
     </div>
   );
 } 

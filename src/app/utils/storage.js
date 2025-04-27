@@ -1,9 +1,21 @@
 // 检查是否在客户端环境
 export const isClient = typeof window !== 'undefined';
 
-// 预设的API密钥
-// 注意：在实际生产环境中，存储API密钥应该更加安全，比如使用环境变量或专门的密钥管理服务
-export const DEFAULT_API_KEY = 'sk-koputwketvnnikxxsrcfldtiebmgigjbcnliiskzsxyvuvui'; // 这是一个示例密钥，需要替换为您实际的SiliconFlow API密钥
+// 尝试从环境变量中获取API密钥
+const getEnvApiKey = () => {
+  try {
+    return (typeof process !== 'undefined' && 
+            process.env && 
+            process.env.NEXT_PUBLIC_SILICONFLOW_API_KEY) || '';
+  } catch (e) {
+    return '';
+  }
+};
+
+// 预设的API密钥 - 优先使用环境变量
+// 注意：在生产环境中，应该使用环境变量而不是在代码中硬编码API密钥
+export const DEFAULT_API_KEY = getEnvApiKey() || 
+  'sk-koputwketvnnikxxsrcfldtiebmgigjbcnliiskzsxyvuvui'; // 如果环境变量不可用，使用备用密钥
 
 // 获取API密钥，优先使用用户配置的密钥，如果没有则使用默认密钥
 export function getApiKey() {
@@ -12,7 +24,12 @@ export function getApiKey() {
   try {
     const settings = localStorage.getItem('chatSettings');
     const parsedSettings = settings ? JSON.parse(settings) : {};
-    return parsedSettings.apiKey || DEFAULT_API_KEY;
+    // 如果用户设置了密钥且不为空
+    if (parsedSettings.apiKey && parsedSettings.apiKey.trim() !== '') {
+      return parsedSettings.apiKey;
+    }
+    // 否则返回默认密钥（可能是环境变量或备用密钥）
+    return DEFAULT_API_KEY;
   } catch (error) {
     console.error('获取API密钥时出错:', error);
     return DEFAULT_API_KEY;

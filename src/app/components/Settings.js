@@ -85,13 +85,13 @@ export default function Settings({ visible, onClose, settings, onSave }) {
               <h4>获取SiliconFlow API密钥的步骤：</h4>
               <ol>
                 <li>打开 <a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener noreferrer">SiliconCloud官网</a> 并注册/登录您的账号</li>
-                <li>登录后，点击右上角的头像，选择"账户管理"</li>
-                <li>在左侧菜单中选择"API密钥"</li>
-                <li>点击"新建"按钮创建新的API密钥</li>
+                <li>登录后，点击右上角的头像，选择&quot;账户管理&quot;</li>
+                <li>在左侧菜单中选择&quot;API密钥&quot;</li>
+                <li>点击&quot;新建&quot;按钮创建新的API密钥</li>
                 <li>创建后，复制生成的密钥并粘贴到上面的输入框中</li>
               </ol>
               <p className={styles.apiNote}>注意：新用户注册后会获得免费的测试额度。API密钥需要妥善保管，避免泄露。</p>
-              <p className={styles.apiNote}>如果遇到"401错误"，表示API密钥无效或已过期，请重新创建一个新的密钥。</p>
+              <p className={styles.apiNote}>如果遇到&quot;401错误&quot;，表示API密钥无效或已过期，请重新创建一个新的密钥。</p>
             </div>
           )}
         </div>
