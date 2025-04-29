@@ -1,6 +1,8 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
+import { Layout, Input, Button, Drawer, List, Typography, Space, Tooltip, Modal } from 'antd';
+import { SendOutlined, SettingOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
 import styles from './page.module.css';
 import Settings from '../components/Settings';
 import ChatMessage from '../components/ChatMessage';
@@ -9,6 +11,10 @@ import ApiKeyInfo from '../components/ApiKeyInfo';
 import EnvTest from '../components/EnvTest';
 import { streamMessage } from '../api/siliconflow';
 import { saveSettings, loadSettings, saveHistory, loadHistory, isClient, DEFAULT_API_KEY, getApiKey, saveSessions, loadSessions } from '../utils/storage';
+
+const { Header, Sider, Content } = Layout;
+const { TextArea } = Input;
+const { Title } = Typography;
 
 // 默认欢迎消息
 const DEFAULT_WELCOME_MESSAGE = { 
@@ -344,156 +350,121 @@ export default function ChatPage() {
   };
   
   return (
-    <div className={styles.chatContainer}>
-      <div className={styles.chatHeader}>
-        <div className={styles.chatTitle}>卡皮巴拉IT专家</div>
-        <div className={styles.chatControls}>
-          <ClientOnly>
-            <button 
-              className={styles.controlButton} 
-              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
-              title="聊天历史"
-            >
-              📚
-            </button>
-            <button 
-              className={styles.controlButton} 
-              onClick={createNewSession}
-              title="新建会话"
-            >
-              ➕
-            </button>
-            <button 
-              className={styles.controlButton} 
-              onClick={clearChat}
-              title="清空聊天"
-            >
-              🗑️
-            </button>
-          </ClientOnly>
-          <button 
-            className={styles.controlButton} 
-            onClick={() => setIsSettingsOpen(true)}
-            title="设置"
+    <Layout className={styles.main}>
+      <Sider width={250} theme="light" className={styles.sidebar}>
+        <div className={styles.sidebarHeader}>
+          <Title level={4}>聊天会话</Title>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={createNewSession}
           >
-            ⚙️
-          </button>
+            新会话
+          </Button>
         </div>
-      </div>
-      
-      <div className={styles.mainContent}>
-        {isHistoryOpen && (
-          <div className={styles.historyPanel}>
-            <div className={styles.historyHeader}>
-              <h3>聊天历史</h3>
-              <button 
-                className={styles.closeButton}
-                onClick={() => setIsHistoryOpen(false)}
-              >
-                ✕
-              </button>
-            </div>
-            <div className={styles.historyList}>
-              {sessions.map(session => (
-                <div
-                  key={session.id}
-                  className={`${styles.historyItem} ${session.id === currentSessionId ? styles.active : ''}`}
-                >
-                  <div className={styles.historyItemContent}>
-                    {editingSessionId === session.id ? (
-                      <input
-                        type="text"
-                        value={editingTitle}
-                        onChange={(e) => setEditingTitle(e.target.value)}
-                        onKeyDown={handleTitleEditComplete}
-                        onBlur={() => renameSession(session.id, editingTitle)}
-                        className={styles.titleInput}
-                        autoFocus
-                      />
-                    ) : (
-                      <div 
-                        className={styles.historyTitle}
-                        onClick={() => switchSession(session.id)}
-                      >
-                        {session.title}
-                      </div>
-                    )}
-                    <div className={styles.historyDate}>
-                      {new Date(session.createdAt).toLocaleString()}
-                    </div>
-                  </div>
-                  <div className={styles.historyItemActions}>
-                    <button
-                      className={styles.actionButton}
-                      onClick={() => startEditing(session)}
-                      title="重命名"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      className={styles.actionButton}
-                      onClick={() => deleteSession(session.id)}
-                      title="删除"
-                    >
-                      🗑️
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-        
-        <div className={styles.chatMessages} ref={chatMessagesRef}>
-          {messages.map((message, index) => (
-            <ChatMessage 
-              key={index} 
-              message={message}
-              isTyping={isTyping && index === messages.length - 1}
-            />
-          ))}
-          
-          {error && <div className={styles.errorMessage}>{error}</div>}
-        </div>
-      </div>
-      
-      <div className={styles.inputArea}>
-        <textarea
-          value={inputText}
-          onChange={(e) => setInputText(e.target.value)}
-          onKeyDown={handleKeyPress}
-          className={styles.messageInput}
-          placeholder="输入消息..."
-          rows={1}
-          autoFocus
+        <List
+          className={styles.sessionList}
+          dataSource={sessions}
+          renderItem={(session) => (
+            <List.Item
+              className={`${styles.sessionItem} ${session.id === currentSessionId ? styles.active : ''}`}
+              onClick={() => switchSession(session.id)}
+            >
+              <div className={styles.sessionTitle}>
+                {editingSessionId === session.id ? (
+                  <Input
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    onKeyDown={handleTitleEditComplete}
+                    autoFocus
+                  />
+                ) : (
+                  <span>{session.title}</span>
+                )}
+              </div>
+              <div className={styles.sessionActions}>
+                <Tooltip title="编辑">
+                  <EditOutlined
+                    className={styles.sessionAction}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      startEditing(session);
+                    }}
+                  />
+                </Tooltip>
+                <Tooltip title="删除">
+                  <DeleteOutlined
+                    className={`${styles.sessionAction} ${styles.delete}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      deleteSession(session.id);
+                    }}
+                  />
+                </Tooltip>
+              </div>
+            </List.Item>
+          )}
         />
-        <button 
-          className={styles.sendButton}
-          onClick={sendMessage}
-          disabled={isTyping}
-        >
-          {isTyping ? '发送中...' : '发送'}
-        </button>
-      </div>
-      
-      <ClientOnly>
-        <Settings 
-          visible={isSettingsOpen} 
-          onClose={() => setIsSettingsOpen(false)} 
+      </Sider>
+      <Layout>
+        <Content className={styles.chatContainer}>
+          <div className={styles.messagesContainer} ref={chatMessagesRef}>
+            {messages.map((message, index) => (
+              <ChatMessage
+                key={index}
+                message={message}
+                isTyping={isTyping && index === messages.length - 1}
+              />
+            ))}
+          </div>
+          <div className={styles.inputContainer}>
+            <TextArea
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyPress={handleKeyPress}
+              placeholder="输入消息..."
+              autoSize={{ minRows: 1, maxRows: 4 }}
+            />
+            <Button
+              type="primary"
+              icon={<SendOutlined />}
+              onClick={sendMessage}
+              disabled={!inputText.trim()}
+            >
+              发送
+            </Button>
+            <Button
+              icon={<SettingOutlined />}
+              onClick={() => setIsSettingsOpen(true)}
+            >
+              设置
+            </Button>
+          </div>
+        </Content>
+      </Layout>
+      <Drawer
+        title="设置"
+        placement="right"
+        onClose={() => setIsSettingsOpen(false)}
+        open={isSettingsOpen}
+        width={400}
+      >
+        <Settings
           settings={settings}
           onSave={handleSaveSettings}
+          onClose={() => setIsSettingsOpen(false)}
         />
-      </ClientOnly>
-      
-      <ClientOnly>
-        <ApiKeyInfo />
-      </ClientOnly>
-      
-      {process.env.NODE_ENV === 'development' && (
-        <ClientOnly>
-          <EnvTest />
-        </ClientOnly>
+      </Drawer>
+      {error && (
+        <Modal
+          title="错误"
+          open={!!error}
+          onOk={() => setError('')}
+          onCancel={() => setError('')}
+        >
+          <p>{error}</p>
+        </Modal>
       )}
-    </div>
+    </Layout>
   );
 } 

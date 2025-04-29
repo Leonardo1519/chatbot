@@ -1,17 +1,56 @@
+'use client';
+
 import Link from 'next/link';
+import { Card, Typography, Button, Space, Layout, Row, Col } from 'antd';
+import { MessageOutlined, RobotOutlined, SettingOutlined } from '@ant-design/icons';
 import styles from './page.module.css';
+
+const { Title, Paragraph } = Typography;
+const { Content } = Layout;
 
 export default function Home() {
   return (
-    <main className={styles.main}>
-      <div className={styles.center}>
-        <h1>聊天应用演示</h1>
-        <div className={styles.card}>
-          <Link href="/chat">
-            <p className={styles.chatButton}>进入聊天室</p>
-          </Link>
+    <Layout className={styles.main}>
+      <Content className={styles.content}>
+        <div className={styles.center}>
+          <Title level={2} className={styles.title}>
+            <RobotOutlined /> 卡皮巴拉AI助手
+          </Title>
+          <Paragraph className={styles.description}>
+            欢迎使用卡皮巴拉AI助手，这是一个智能的对话系统，可以帮助你解答各种问题。
+          </Paragraph>
+          <Row gutter={[24, 24]} className={styles.features}>
+            <Col xs={24} sm={8}>
+              <Card className={styles.featureCard}>
+                <MessageOutlined className={styles.featureIcon} />
+                <Title level={4}>智能对话</Title>
+                <Paragraph>基于先进的AI模型，提供流畅自然的对话体验</Paragraph>
+              </Card>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Card className={styles.featureCard}>
+                <RobotOutlined className={styles.featureIcon} />
+                <Title level={4}>专业解答</Title>
+                <Paragraph>由IT专家和计算机教授提供专业的技术支持</Paragraph>
+              </Card>
+            </Col>
+            <Col xs={24} sm={8}>
+              <Card className={styles.featureCard}>
+                <SettingOutlined className={styles.featureIcon} />
+                <Title level={4}>灵活配置</Title>
+                <Paragraph>支持自定义设置，满足不同场景的需求</Paragraph>
+              </Card>
+            </Col>
+          </Row>
+          <div className={styles.buttonContainer}>
+            <Link href="/chat">
+              <Button type="primary" size="large" icon={<MessageOutlined />}>
+                进入聊天室
+              </Button>
+            </Link>
+          </div>
         </div>
-      </div>
-    </main>
+      </Content>
+    </Layout>
   );
 }

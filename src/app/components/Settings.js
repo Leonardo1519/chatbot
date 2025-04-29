@@ -1,8 +1,12 @@
 import { useState, useEffect } from 'react';
+import { Form, Input, Select, Slider, Button, Space } from 'antd';
 import styles from './Settings.module.css';
 import { isClient, DEFAULT_API_KEY, validateApiKey, checkAndUpdateApiKeyStatus } from '../utils/storage';
 
+const { Option } = Select;
+
 export default function Settings({ visible, onClose, settings, onSave }) {
+  const [form] = Form.useForm();
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('deepseek-ai/DeepSeek-V2.5');
   const [temperature, setTemperature] = useState(0.7);
@@ -55,33 +59,8 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     return () => clearTimeout(timeoutId);
   }, [apiKey, isUsingDefaultKey]);
 
-  const handleSave = async () => {
-    if (!apiKey.trim()) {
-      alert('请输入有效的API密钥');
-      return;
-    }
-    
-    setIsValidating(true);
-    setValidationError('');
-    
-    try {
-      const isValid = await validateApiKey(apiKey.trim());
-      if (!isValid) {
-        setValidationError('API密钥无效或已过期，请检查后重试');
-        return;
-      }
-      
-      onSave({
-        apiKey: apiKey.trim(),
-        model,
-        temperature
-      });
-      onClose();
-    } catch (error) {
-      setValidationError('验证API密钥时出错，请稍后重试');
-    } finally {
-      setIsValidating(false);
-    }
+  const handleSubmit = (values) => {
+    onSave(values);
   };
   
   const toggleApiHelp = () => {
@@ -91,109 +70,60 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   if (!visible) return null;
   
   return (
-    <div className={styles.settingsOverlay}>
-      <div className={styles.settingsPanel}>
-        <h2>SiliconFlow设置</h2>
-        
-        <div className={styles.formGroup}>
-          <label htmlFor="apiKey">SiliconFlow API密钥</label>
-          <input
-            id="apiKey"
-            type="password"
-            value={apiKey}
-            onChange={(e) => {
-              setApiKey(e.target.value);
-              setIsUsingDefaultKey(e.target.value === DEFAULT_API_KEY);
-              setValidationError('');
-            }}
-            placeholder="输入您的API密钥"
-            className={styles.input}
-          />
-          
-          {validationError && (
-            <div className={styles.errorMessage}>
-              {validationError}
-            </div>
-          )}
-          
-          {isAutoValidating && (
-            <div className={styles.validatingMessage}>
-              正在验证API密钥...
-            </div>
-          )}
-          
-          {isUsingDefaultKey && (
-            <div className={styles.defaultKeyNotice}>
-              <p>您正在使用预设的API密钥。此密钥已预先配置，可直接使用。</p>
-              <p>如需使用自己的API密钥，请按照下面的步骤获取并替换。</p>
-            </div>
-          )}
-          
-          <div className={styles.helpLink}>
-            <button onClick={toggleApiHelp} className={styles.helpButton}>
-              {showApiHelp ? '隐藏帮助' : '如何获取API密钥？'}
-            </button>
-          </div>
-          
-          {showApiHelp && (
-            <div className={styles.apiHelpBox}>
-              <h4>获取SiliconFlow API密钥的步骤：</h4>
-              <ol>
-                <li>打开 <a href="https://cloud.siliconflow.cn" target="_blank" rel="noopener noreferrer">SiliconCloud官网</a> 并注册/登录您的账号</li>
-                <li>登录后，点击右上角的头像，选择&quot;账户管理&quot;</li>
-                <li>在左侧菜单中选择&quot;API密钥&quot;</li>
-                <li>点击&quot;新建&quot;按钮创建新的API密钥</li>
-                <li>创建后，复制生成的密钥并粘贴到上面的输入框中</li>
-              </ol>
-              <p className={styles.apiNote}>注意：新用户注册后会获得免费的测试额度。API密钥需要妥善保管，避免泄露。</p>
-              <p className={styles.apiNote}>如果遇到&quot;401错误&quot;，表示API密钥无效或已过期，请重新创建一个新的密钥。</p>
-            </div>
-          )}
-        </div>
-        
-        <div className={styles.formGroup}>
-          <label htmlFor="model">选择模型</label>
-          <select
-            id="model"
-            value={model}
-            onChange={(e) => setModel(e.target.value)}
-            className={styles.select}
-          >
-            {models.map((m) => (
-              <option key={m.id} value={m.id}>{m.name}</option>
-            ))}
-          </select>
-          <small>不同模型的能力和响应速度可能有所不同</small>
-        </div>
-        
-        <div className={styles.formGroup}>
-          <label htmlFor="temperature">温度 (Temperature)</label>
-          <input
-            id="temperature"
-            type="range"
-            min="0"
-            max="1"
-            step="0.1"
-            value={temperature}
-            onChange={(e) => setTemperature(parseFloat(e.target.value))}
-            className={styles.slider}
-          />
-          <small>较高的值会使输出更加随机，较低的值会使输出更加确定</small>
-        </div>
-        
-        <div className={styles.buttonGroup}>
-          <button onClick={onClose} className={styles.cancelButton}>
+    <Form
+      form={form}
+      layout="vertical"
+      initialValues={settings}
+      onFinish={handleSubmit}
+      className={styles.settingsForm}
+    >
+      <Form.Item
+        label="API密钥"
+        name="apiKey"
+        rules={[{ required: true, message: '请输入API密钥' }]}
+      >
+        <Input.Password placeholder="输入SiliconFlow API密钥" />
+      </Form.Item>
+
+      <Form.Item
+        label="模型"
+        name="model"
+        rules={[{ required: true, message: '请选择模型' }]}
+      >
+        <Select placeholder="选择模型">
+          {models.map((m) => (
+            <Option key={m.id} value={m.id}>{m.name}</Option>
+          ))}
+        </Select>
+      </Form.Item>
+
+      <Form.Item
+        label="温度"
+        name="temperature"
+        rules={[{ required: true, message: '请设置温度' }]}
+      >
+        <Slider
+          min={0}
+          max={1}
+          step={0.1}
+          marks={{
+            0: '0',
+            0.5: '0.5',
+            1: '1'
+          }}
+        />
+      </Form.Item>
+
+      <Form.Item>
+        <Space>
+          <Button type="primary" htmlType="submit">
+            保存
+          </Button>
+          <Button onClick={onClose}>
             取消
-          </button>
-          <button 
-            onClick={handleSave} 
-            className={styles.saveButton}
-            disabled={isValidating || isAutoValidating}
-          >
-            {isValidating ? '保存中...' : '保存'}
-          </button>
-        </div>
-      </div>
-    </div>
+          </Button>
+        </Space>
+      </Form.Item>
+    </Form>
   );
 } 

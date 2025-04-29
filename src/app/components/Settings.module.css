@@ -205,4 +205,46 @@
 .buttonGroup button:disabled {
   opacity: 0.7;
   cursor: not-allowed;
+}
+
+.settingsForm {
+  padding: 24px;
+}
+
+.settingsForm :global(.ant-form-item) {
+  margin-bottom: 24px;
+}
+
+.settingsForm :global(.ant-form-item-label) {
+  font-weight: 500;
+}
+
+.settingsForm :global(.ant-input-password) {
+  width: 100%;
+}
+
+.settingsForm :global(.ant-select) {
+  width: 100%;
+}
+
+.settingsForm :global(.ant-slider) {
+  margin: 10px 0;
+}
+
+.settingsForm :global(.ant-slider-mark) {
+  font-size: 12px;
+}
+
+.settingsForm :global(.ant-form-item-explain) {
+  font-size: 12px;
+  margin-top: 4px;
+}
+
+.settingsForm :global(.ant-space) {
+  width: 100%;
+  justify-content: flex-end;
+}
+
+.settingsForm :global(.ant-btn) {
+  min-width: 80px;
 } 

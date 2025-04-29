@@ -1,26 +1,23 @@
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
+import { Inter } from 'next/font/google';
+import { ConfigProvider } from 'antd';
+import zhCN from 'antd/locale/zh_CN';
+import 'antd/dist/reset.css';
+import './globals.css';
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: "简易聊天界面",
-  description: "一个简单的聊天应用演示",
+  title: '卡皮巴拉AI助手',
+  description: '智能对话系统',
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="zh-CN">
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+      <body className={inter.className}>
+        <ConfigProvider locale={zhCN}>
+          {children}
+        </ConfigProvider>
       </body>
     </html>
   );
