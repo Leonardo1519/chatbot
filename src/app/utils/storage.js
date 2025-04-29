@@ -24,15 +24,79 @@ export function getApiKey() {
   try {
     const settings = localStorage.getItem('chatSettings');
     const parsedSettings = settings ? JSON.parse(settings) : {};
+    
     // 如果用户设置了密钥且不为空
     if (parsedSettings.apiKey && parsedSettings.apiKey.trim() !== '') {
       return parsedSettings.apiKey;
     }
-    // 否则返回默认密钥（可能是环境变量或备用密钥）
+    
+    // 检查环境变量
+    const envApiKey = getEnvApiKey();
+    if (envApiKey && envApiKey.trim() !== '') {
+      return envApiKey;
+    }
+    
+    // 如果都没有，返回默认密钥
     return DEFAULT_API_KEY;
   } catch (error) {
     console.error('获取API密钥时出错:', error);
     return DEFAULT_API_KEY;
+  }
+}
+
+// 验证API密钥是否有效
+export async function validateApiKey(apiKey) {
+  if (!apiKey || apiKey.trim() === '') {
+    return false;
+  }
+
+  try {
+    const response = await fetch('https://api.siliconflow.cn/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${apiKey}`
+      },
+      body: JSON.stringify({
+        model: 'deepseek-ai/DeepSeek-V2.5',
+        messages: [{ role: 'user', content: 'test' }],
+        max_tokens: 1
+      })
+    });
+    
+    if (response.status === 401) {
+      return false;
+    }
+    
+    return response.status === 200;
+  } catch (error) {
+    console.error('验证API密钥时出错:', error);
+    return false;
+  }
+}
+
+// 检查API密钥是否有效并更新状态
+export async function checkAndUpdateApiKeyStatus() {
+  if (!isClient) return false;
+  
+  try {
+    const currentKey = getApiKey();
+    const isValid = await validateApiKey(currentKey);
+    
+    if (!isValid) {
+      // 如果密钥无效，清除本地存储的密钥
+      const settings = localStorage.getItem('chatSettings');
+      if (settings) {
+        const parsedSettings = JSON.parse(settings);
+        delete parsedSettings.apiKey;
+        localStorage.setItem('chatSettings', JSON.stringify(parsedSettings));
+      }
+    }
+    
+    return isValid;
+  } catch (error) {
+    console.error('检查API密钥状态时出错:', error);
+    return false;
   }
 }
 
@@ -84,6 +148,32 @@ export function loadHistory() {
     return history ? JSON.parse(history) : [];
   } catch (error) {
     console.error('加载聊天历史时出错:', error);
+    return [];
+  }
+}
+
+// 保存会话到localStorage
+export function saveSessions(sessions) {
+  if (!isClient) return false;
+  
+  try {
+    localStorage.setItem('chatSessions', JSON.stringify(sessions));
+    return true;
+  } catch (error) {
+    console.error('保存会话时出错:', error);
+    return false;
+  }
+}
+
+// 从localStorage加载会话
+export function loadSessions() {
+  if (!isClient) return [];
+  
+  try {
+    const sessions = localStorage.getItem('chatSessions');
+    return sessions ? JSON.parse(sessions) : [];
+  } catch (error) {
+    console.error('加载会话时出错:', error);
     return [];
   }
 } 

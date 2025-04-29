@@ -6,6 +6,9 @@ const nextConfig = {
   },
   // 关闭严格模式，避免开发时的双重渲染
   reactStrictMode: false,
+  images: {
+    domains: ['localhost'],
+  },
 };
 
 export default nextConfig;

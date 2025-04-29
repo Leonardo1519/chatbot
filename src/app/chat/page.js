@@ -8,12 +8,13 @@ import ClientOnly from '../components/ClientOnly';
 import ApiKeyInfo from '../components/ApiKeyInfo';
 import EnvTest from '../components/EnvTest';
 import { streamMessage } from '../api/siliconflow';
-import { saveSettings, loadSettings, saveHistory, loadHistory, isClient, DEFAULT_API_KEY, getApiKey } from '../utils/storage';
+import { saveSettings, loadSettings, saveHistory, loadHistory, isClient, DEFAULT_API_KEY, getApiKey, saveSessions, loadSessions } from '../utils/storage';
 
 // 默认欢迎消息
 const DEFAULT_WELCOME_MESSAGE = { 
-  text: '你好！我是SiliconFlow AI助手。有什么我可以帮助你的吗？', 
-  isSender: false 
+  text: '你好！我是卡皮巴拉IT专家。有什么我可以帮助你的吗？', 
+  isSender: false,
+  role: 'it_expert'
 };
 
 // 默认设置
@@ -21,6 +22,14 @@ const DEFAULT_SETTINGS = {
   apiKey: DEFAULT_API_KEY, // 使用预设的API密钥
   model: 'deepseek-ai/DeepSeek-V2.5',
   temperature: 0.7
+};
+
+// 聊天会话结构
+const DEFAULT_SESSION = {
+  id: Date.now(),
+  title: '新会话',
+  messages: [DEFAULT_WELCOME_MESSAGE],
+  createdAt: new Date().toISOString()
 };
 
 // 获取用户友好的错误消息
@@ -64,14 +73,18 @@ function getFriendlyErrorMessage(error) {
 }
 
 export default function ChatPage() {
-  // 使用固定的初始状态，避免服务端/客户端渲染不一致
-  const [messages, setMessages] = useState([DEFAULT_WELCOME_MESSAGE]);
+  const [sessions, setSessions] = useState([DEFAULT_SESSION]);
+  const [currentSessionId, setCurrentSessionId] = useState(DEFAULT_SESSION.id);
+  const [messages, setMessages] = useState(DEFAULT_SESSION.messages);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
   const [inputText, setInputText] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState('');
   const [isLoaded, setIsLoaded] = useState(false);
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [editingSessionId, setEditingSessionId] = useState(null);
+  const [editingTitle, setEditingTitle] = useState('');
   
   const chatMessagesRef = useRef(null);
   
@@ -80,40 +93,107 @@ export default function ChatPage() {
     if (isClient) {
       const savedSettings = loadSettings();
       if (Object.keys(savedSettings).length > 0) {
-        // 确保有API密钥，如果没有则使用默认值
         if (!savedSettings.apiKey) {
           savedSettings.apiKey = DEFAULT_API_KEY;
           saveSettings(savedSettings);
         }
         setSettings(savedSettings);
       } else {
-        // 如果没有保存的设置，使用默认设置（包含预设API密钥）
         saveSettings(DEFAULT_SETTINGS);
       }
       
-      const savedHistory = loadHistory();
-      if (savedHistory.length > 0) {
-        setMessages(savedHistory);
+      const savedSessions = loadSessions();
+      if (savedSessions.length > 0) {
+        setSessions(savedSessions);
+        setCurrentSessionId(savedSessions[0].id);
+        setMessages(savedSessions[0].messages);
       }
       
       setIsLoaded(true);
     }
   }, []);
-  
-  // 保存消息历史到localStorage - 仅在客户端执行且初始加载完成后
+
+  // 保存会话到localStorage
   useEffect(() => {
-    if (isClient && isLoaded && messages.length > 0) {
-      saveHistory(messages);
+    if (isClient && isLoaded && sessions.length > 0) {
+      saveSessions(sessions);
     }
-  }, [messages, isLoaded]);
-  
-  // 滚动到聊天窗口底部
-  useEffect(() => {
-    if (chatMessagesRef.current) {
-      chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+  }, [sessions, isLoaded]);
+
+  // 创建新会话
+  const createNewSession = () => {
+    const newSession = {
+      ...DEFAULT_SESSION,
+      id: Date.now(),
+      createdAt: new Date().toISOString()
+    };
+    setSessions(prev => [newSession, ...prev]);
+    setCurrentSessionId(newSession.id);
+    setMessages(newSession.messages);
+  };
+
+  // 切换会话
+  const switchSession = (sessionId) => {
+    const session = sessions.find(s => s.id === sessionId);
+    if (session) {
+      setCurrentSessionId(sessionId);
+      setMessages(session.messages);
     }
-  }, [messages, isTyping]);
-  
+  };
+
+  // 更新当前会话的消息
+  const updateCurrentSession = (newMessages) => {
+    setSessions(prev => prev.map(session => 
+      session.id === currentSessionId 
+        ? { ...session, messages: newMessages }
+        : session
+    ));
+  };
+
+  // 重命名会话
+  const renameSession = (sessionId, newTitle) => {
+    setSessions(prev => prev.map(session => 
+      session.id === sessionId 
+        ? { ...session, title: newTitle }
+        : session
+    ));
+    setEditingSessionId(null);
+    setEditingTitle('');
+  };
+
+  // 删除会话
+  const deleteSession = (sessionId) => {
+    if (window.confirm('确定要删除这个会话吗？')) {
+      const newSessions = sessions.filter(s => s.id !== sessionId);
+      setSessions(newSessions);
+      
+      // 如果删除的是当前会话，切换到第一个会话
+      if (sessionId === currentSessionId && newSessions.length > 0) {
+        setCurrentSessionId(newSessions[0].id);
+        setMessages(newSessions[0].messages);
+      } else if (newSessions.length === 0) {
+        // 如果没有会话了，创建一个新的
+        createNewSession();
+      }
+    }
+  };
+
+  // 开始编辑会话标题
+  const startEditing = (session) => {
+    setEditingSessionId(session.id);
+    setEditingTitle(session.title);
+  };
+
+  // 处理标题编辑完成
+  const handleTitleEditComplete = (e) => {
+    if (e.key === 'Enter') {
+      renameSession(editingSessionId, editingTitle);
+    } else if (e.key === 'Escape') {
+      setEditingSessionId(null);
+      setEditingTitle('');
+    }
+  };
+
   // 发送消息到SiliconFlow API
   const sendMessage = async () => {
     if (inputText.trim() === '') return;
@@ -126,33 +206,62 @@ export default function ChatPage() {
     
     // 添加用户消息
     const userMessage = { text: inputText, isSender: true };
-    setMessages(prev => [...prev, userMessage]);
+    const newMessages = [...messages, userMessage];
+    setMessages(newMessages);
+    updateCurrentSession(newMessages);
     setInputText('');
     
     // 创建临时AI回应消息用于显示"正在输入"状态
-    const tempAiMessage = { text: '', isSender: false };
+    const tempAiMessage = { text: '', isSender: false, role: 'it_expert' };
     setMessages(prev => [...prev, tempAiMessage]);
     setIsTyping(true);
     
     try {
       let aiReply = '';
       
-      // 使用流式API获取响应
+      // 使用流式API获取IT专家的响应
       await streamMessage(
         apiKey,
-        [...messages, userMessage], // 包含历史消息和当前用户消息
+        newMessages,
         (chunk) => {
           // 收到流式响应的一个片段
           aiReply += chunk;
-          setMessages(prev => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { ...tempAiMessage, text: aiReply };
-            return updated;
-          });
+          const updatedMessages = [...newMessages, { ...tempAiMessage, text: aiReply }];
+          setMessages(updatedMessages);
+          updateCurrentSession(updatedMessages);
         },
-        (fullResponse) => {
-          // 完成响应
-          setIsTyping(false);
+        async (fullResponse) => {
+          // IT专家回复完成后，让计算机教授点评
+          const professorMessage = { text: '', isSender: false, role: 'professor' };
+          setMessages(prev => [...prev, professorMessage]);
+          
+          // 构建教授点评的提示词
+          const professorPrompt = `作为一位计算机教授，请对以下IT专家的回答进行专业点评：\n\n${fullResponse}`;
+          
+          // 获取教授的点评
+          let professorReply = '';
+          await streamMessage(
+            apiKey,
+            [...newMessages, { ...tempAiMessage, text: fullResponse }, { text: professorPrompt, isSender: true }],
+            (chunk) => {
+              professorReply += chunk;
+              const updatedMessages = [...newMessages, 
+                { ...tempAiMessage, text: fullResponse },
+                { ...professorMessage, text: professorReply }
+              ];
+              setMessages(updatedMessages);
+              updateCurrentSession(updatedMessages);
+            },
+            () => {
+              setIsTyping(false);
+            },
+            (error) => {
+              console.error('教授点评出错:', error);
+              const { message } = getFriendlyErrorMessage(error);
+              setError(message);
+              setIsTyping(false);
+            }
+          );
         },
         (error) => {
           // 出错
@@ -166,25 +275,24 @@ export default function ChatPage() {
           }
           
           setIsTyping(false);
-          setMessages(prev => {
-            const updated = [...prev];
-            updated[updated.length - 1] = { ...tempAiMessage, text: '抱歉，我遇到了一些问题。' + message };
-            return updated;
-          });
-        },
-        settings.model
+          const errorMessages = [...newMessages, { ...tempAiMessage, text: '抱歉，我遇到了一些问题。' + message }];
+          setMessages(errorMessages);
+          updateCurrentSession(errorMessages);
+        }
       );
     } catch (error) {
       console.error('发送消息时出错:', error);
       const { message, shouldOpenSettings } = getFriendlyErrorMessage(error);
       setError(message);
       
-      // 如果需要，自动打开设置面板
       if (shouldOpenSettings) {
         setIsSettingsOpen(true);
       }
       
       setIsTyping(false);
+      const errorMessages = [...newMessages, { ...tempAiMessage, text: '抱歉，我遇到了一些问题。' + message }];
+      setMessages(errorMessages);
+      updateCurrentSession(errorMessages);
     }
   };
   
@@ -238,9 +346,23 @@ export default function ChatPage() {
   return (
     <div className={styles.chatContainer}>
       <div className={styles.chatHeader}>
-        <div className={styles.chatTitle}>SiliconFlow AI助手</div>
+        <div className={styles.chatTitle}>卡皮巴拉IT专家</div>
         <div className={styles.chatControls}>
           <ClientOnly>
+            <button 
+              className={styles.controlButton} 
+              onClick={() => setIsHistoryOpen(!isHistoryOpen)}
+              title="聊天历史"
+            >
+              📚
+            </button>
+            <button 
+              className={styles.controlButton} 
+              onClick={createNewSession}
+              title="新建会话"
+            >
+              ➕
+            </button>
             <button 
               className={styles.controlButton} 
               onClick={clearChat}
@@ -259,16 +381,80 @@ export default function ChatPage() {
         </div>
       </div>
       
-      <div className={styles.chatMessages} ref={chatMessagesRef}>
-        {messages.map((message, index) => (
-          <ChatMessage 
-            key={index} 
-            message={message}
-            isTyping={isTyping && index === messages.length - 1}
-          />
-        ))}
+      <div className={styles.mainContent}>
+        {isHistoryOpen && (
+          <div className={styles.historyPanel}>
+            <div className={styles.historyHeader}>
+              <h3>聊天历史</h3>
+              <button 
+                className={styles.closeButton}
+                onClick={() => setIsHistoryOpen(false)}
+              >
+                ✕
+              </button>
+            </div>
+            <div className={styles.historyList}>
+              {sessions.map(session => (
+                <div
+                  key={session.id}
+                  className={`${styles.historyItem} ${session.id === currentSessionId ? styles.active : ''}`}
+                >
+                  <div className={styles.historyItemContent}>
+                    {editingSessionId === session.id ? (
+                      <input
+                        type="text"
+                        value={editingTitle}
+                        onChange={(e) => setEditingTitle(e.target.value)}
+                        onKeyDown={handleTitleEditComplete}
+                        onBlur={() => renameSession(session.id, editingTitle)}
+                        className={styles.titleInput}
+                        autoFocus
+                      />
+                    ) : (
+                      <div 
+                        className={styles.historyTitle}
+                        onClick={() => switchSession(session.id)}
+                      >
+                        {session.title}
+                      </div>
+                    )}
+                    <div className={styles.historyDate}>
+                      {new Date(session.createdAt).toLocaleString()}
+                    </div>
+                  </div>
+                  <div className={styles.historyItemActions}>
+                    <button
+                      className={styles.actionButton}
+                      onClick={() => startEditing(session)}
+                      title="重命名"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      className={styles.actionButton}
+                      onClick={() => deleteSession(session.id)}
+                      title="删除"
+                    >
+                      🗑️
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
         
-        {error && <div className={styles.errorMessage}>{error}</div>}
+        <div className={styles.chatMessages} ref={chatMessagesRef}>
+          {messages.map((message, index) => (
+            <ChatMessage 
+              key={index} 
+              message={message}
+              isTyping={isTyping && index === messages.length - 1}
+            />
+          ))}
+          
+          {error && <div className={styles.errorMessage}>{error}</div>}
+        </div>
       </div>
       
       <div className={styles.inputArea}>

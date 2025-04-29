@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import styles from './Settings.module.css';
-import { isClient, DEFAULT_API_KEY } from '../utils/storage';
+import { isClient, DEFAULT_API_KEY, validateApiKey, checkAndUpdateApiKeyStatus } from '../utils/storage';
 
 export default function Settings({ visible, onClose, settings, onSave }) {
   const [apiKey, setApiKey] = useState('');
@@ -8,6 +8,9 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   const [temperature, setTemperature] = useState(0.7);
   const [showApiHelp, setShowApiHelp] = useState(false);
   const [isUsingDefaultKey, setIsUsingDefaultKey] = useState(false);
+  const [isValidating, setIsValidating] = useState(false);
+  const [validationError, setValidationError] = useState('');
+  const [isAutoValidating, setIsAutoValidating] = useState(false);
   
   const models = [
     { id: 'deepseek-ai/DeepSeek-V2.5', name: 'DeepSeek V2.5' },
@@ -28,18 +31,57 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     }
   }, [settings]);
 
-  const handleSave = () => {
+  // 自动验证API密钥
+  useEffect(() => {
+    const autoValidate = async () => {
+      if (apiKey && apiKey.trim() !== '' && !isUsingDefaultKey) {
+        setIsAutoValidating(true);
+        try {
+          const isValid = await validateApiKey(apiKey.trim());
+          if (!isValid) {
+            setValidationError('API密钥无效或已过期，请检查后重试');
+          } else {
+            setValidationError('');
+          }
+        } catch (error) {
+          setValidationError('验证API密钥时出错，请稍后重试');
+        } finally {
+          setIsAutoValidating(false);
+        }
+      }
+    };
+
+    const timeoutId = setTimeout(autoValidate, 1000);
+    return () => clearTimeout(timeoutId);
+  }, [apiKey, isUsingDefaultKey]);
+
+  const handleSave = async () => {
     if (!apiKey.trim()) {
       alert('请输入有效的API密钥');
       return;
     }
     
-    onSave({
-      apiKey: apiKey.trim(),
-      model,
-      temperature
-    });
-    onClose();
+    setIsValidating(true);
+    setValidationError('');
+    
+    try {
+      const isValid = await validateApiKey(apiKey.trim());
+      if (!isValid) {
+        setValidationError('API密钥无效或已过期，请检查后重试');
+        return;
+      }
+      
+      onSave({
+        apiKey: apiKey.trim(),
+        model,
+        temperature
+      });
+      onClose();
+    } catch (error) {
+      setValidationError('验证API密钥时出错，请稍后重试');
+    } finally {
+      setIsValidating(false);
+    }
   };
   
   const toggleApiHelp = () => {
@@ -62,10 +104,23 @@ export default function Settings({ visible, onClose, settings, onSave }) {
             onChange={(e) => {
               setApiKey(e.target.value);
               setIsUsingDefaultKey(e.target.value === DEFAULT_API_KEY);
+              setValidationError('');
             }}
             placeholder="输入您的API密钥"
             className={styles.input}
           />
+          
+          {validationError && (
+            <div className={styles.errorMessage}>
+              {validationError}
+            </div>
+          )}
+          
+          {isAutoValidating && (
+            <div className={styles.validatingMessage}>
+              正在验证API密钥...
+            </div>
+          )}
           
           {isUsingDefaultKey && (
             <div className={styles.defaultKeyNotice}>
@@ -112,7 +167,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
         </div>
         
         <div className={styles.formGroup}>
-          <label htmlFor="temperature">温度 ({temperature})</label>
+          <label htmlFor="temperature">温度 (Temperature)</label>
           <input
             id="temperature"
             type="range"
@@ -123,12 +178,20 @@ export default function Settings({ visible, onClose, settings, onSave }) {
             onChange={(e) => setTemperature(parseFloat(e.target.value))}
             className={styles.slider}
           />
-          <small>较低的值生成更确定性的回答，较高的值生成更多样化的回答</small>
+          <small>较高的值会使输出更加随机，较低的值会使输出更加确定</small>
         </div>
         
         <div className={styles.buttonGroup}>
-          <button onClick={onClose} className={styles.cancelButton}>取消</button>
-          <button onClick={handleSave} className={styles.saveButton}>保存</button>
+          <button onClick={onClose} className={styles.cancelButton}>
+            取消
+          </button>
+          <button 
+            onClick={handleSave} 
+            className={styles.saveButton}
+            disabled={isValidating || isAutoValidating}
+          >
+            {isValidating ? '保存中...' : '保存'}
+          </button>
         </div>
       </div>
     </div>

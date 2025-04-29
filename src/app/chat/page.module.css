@@ -2,10 +2,130 @@
   display: flex;
   flex-direction: column;
   height: 100vh;
-  max-width: 900px;
+  max-width: 1200px;
   margin: 0 auto;
   background-color: white;
   box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+}
+
+.mainContent {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+
+.historyPanel {
+  width: 300px;
+  border-right: 1px solid #e1e1e1;
+  background-color: #f8f9fa;
+  display: flex;
+  flex-direction: column;
+}
+
+.historyHeader {
+  padding: 15px;
+  border-bottom: 1px solid #e1e1e1;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.historyHeader h3 {
+  margin: 0;
+  font-size: 1.1rem;
+  color: #333;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1.2rem;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.closeButton:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.historyList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+}
+
+.historyItem {
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.historyItemContent {
+  flex: 1;
+  min-width: 0;
+}
+
+.historyItemActions {
+  display: flex;
+  gap: 8px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.historyItem:hover .historyItemActions {
+  opacity: 1;
+}
+
+.actionButton {
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.actionButton:hover {
+  background-color: rgba(0, 0, 0, 0.1);
+}
+
+.titleInput {
+  width: 100%;
+  padding: 4px 8px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  margin-bottom: 4px;
+}
+
+.titleInput:focus {
+  outline: none;
+  border-color: #1a73e8;
+}
+
+.historyItem.active {
+  background-color: #e3f2fd;
+}
+
+.historyTitle {
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #333;
+}
+
+.historyDate {
+  font-size: 0.8rem;
+  color: #666;
 }
 
 .chatHeader {
