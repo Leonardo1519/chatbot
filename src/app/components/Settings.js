@@ -166,7 +166,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       onFinish={handleSubmit}
       className={styles.settingsForm}
     >
-      <Divider orientation="left">个人设置</Divider>
+      <Divider orientation="center">个人设置</Divider>
       
       <div className={styles.avatarUploadContainer}>
         <div className={styles.avatarPreview}>
@@ -197,7 +197,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
         </div>
       </div>
 
-      <Divider orientation="left">接口设置</Divider>
+      <Divider orientation="center">接口设置</Divider>
       <Form.Item
         label="API密钥"
         name="apiKey"
@@ -257,7 +257,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
         />
       </Form.Item>
 
-      <Divider orientation="left">界面设置</Divider>
+      <Divider orientation="center">界面设置</Divider>
       <Form.Item
         label="界面主题颜色"
         name="themeColor"
