@@ -1,21 +1,69 @@
 'use client';
 
-import React from 'react';
-import { ConfigProvider } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { ConfigProvider, theme } from 'antd';
 import { StyleProvider, createCache } from '@ant-design/cssinjs';
 import zhCN from 'antd/locale/zh_CN';
 import ClientOnly from './components/ClientOnly';
+import { getTheme, getThemeColor, DEFAULT_THEME } from './utils/storage';
 
 // 创建一个缓存实例
 const cache = createCache();
 
 export function Providers({ children }) {
+  const [currentTheme, setCurrentTheme] = useState(DEFAULT_THEME);
+  const [primaryColor, setPrimaryColor] = useState('#1890ff');
+
+  // 监听localStorage的变化，更新主题
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // 初始化主题
+    const initialTheme = getTheme();
+    setCurrentTheme(initialTheme);
+    const themeColor = getThemeColor(initialTheme);
+    setPrimaryColor(themeColor);
+    
+    // 初始设置CSS变量，确保界面主题色默认为蓝色
+    const root = document.documentElement;
+    root.style.setProperty('--primary-color', themeColor);
+    
+    // 监听storage事件以检测其他标签页的变化
+    const handleStorageChange = () => {
+      const newTheme = getTheme();
+      setCurrentTheme(newTheme);
+      const newColor = getThemeColor(newTheme);
+      setPrimaryColor(newColor);
+      
+      // 更新CSS变量
+      root.style.setProperty('--primary-color', newColor);
+    };
+    
+    // 创建自定义事件监听器
+    window.addEventListener('storage', handleStorageChange);
+    
+    // 创建一个自定义事件，当在同一标签页内修改主题时触发
+    window.addEventListener('themeChange', handleStorageChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('themeChange', handleStorageChange);
+    };
+  }, []);
+
   return (
     <ClientOnly>
       <StyleProvider hashPriority="high" cache={cache}>
         <ConfigProvider
           locale={zhCN}
           wave={{ disabled: true }}
+          theme={{
+            token: {
+              colorPrimary: primaryColor,
+              borderRadius: 4,
+            },
+            algorithm: theme.defaultAlgorithm,
+          }}
         >
           {children}
         </ConfigProvider>

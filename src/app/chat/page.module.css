@@ -450,3 +450,12 @@
   background-color: #1890ff;
   color: #fff;
 }
+
+/* 禁用状态的发送按钮样式 */
+.inputContainer .ant-btn-primary[disabled] {
+  background-color: rgba(24, 144, 255, 0.3) !important;
+  border-color: rgba(24, 144, 255, 0.3) !important;
+  color: white !important;
+  opacity: 0.7 !important;
+  cursor: not-allowed;
+}

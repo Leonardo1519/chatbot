@@ -299,15 +299,26 @@
   width: 100%;
 }
 
+/* 确保可以点击Radio.Button */
 .themeSelector :global(.ant-radio-button-wrapper) {
-  display: flex !important;
-  justify-content: center !important;
-  align-items: center !important;
-  height: 36px !important;
-  text-align: center !important;
-  border-radius: 4px !important;
   margin-right: 0 !important;
   border-left-width: 1px !important;
+  pointer-events: auto !important;
+  cursor: pointer !important;
+  text-align: center !important;
+  height: 36px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border-radius: 4px !important;
+  position: relative !important;
+}
+
+/* 选中主题按钮的外层描边 */
+.themeSelector :global(.ant-radio-button-wrapper-checked) {
+  outline: 1px solid #999 !important;
+  outline-offset: 3px !important;
+  z-index: 1 !important;
 }
 
 /* 移除按钮之间的连接线 */
@@ -315,47 +326,17 @@
   display: none !important;
 }
 
-/* 主题颜色预览 */
-.themeSelector :global(.ant-radio-button-wrapper:nth-child(1)) {
-  background-color: #f0f2f5;
-  border-color: #d9d9d9;
-  color: #000;
+/* 增加设置分区之间的间距 */
+.settingsForm :global(.ant-divider) {
+  margin: 40px 0;
 }
 
-.themeSelector :global(.ant-radio-button-wrapper:nth-child(2)) {
-  background-color: #1890ff;
-  border-color: #1890ff;
-  color: #fff;
+.settingsForm :global(.ant-divider-with-text) {
+  font-size: 16px;
+  font-weight: 500;
 }
 
-.themeSelector :global(.ant-radio-button-wrapper:nth-child(3)) {
-  background-color: #52c41a;
-  border-color: #52c41a;
-  color: #fff;
-}
-
-.themeSelector :global(.ant-radio-button-wrapper:nth-child(4)) {
-  background-color: #722ed1;
-  border-color: #722ed1;
-  color: #fff;
-}
-
-.themeSelector :global(.ant-radio-button-wrapper:nth-child(5)) {
-  background-color: #1a1a1a;
-  border-color: #303030;
-  color: #f0f0f0;
-}
-
-.themeSelector :global(.ant-radio-button-wrapper:first-child),
-.themeSelector :global(.ant-radio-button-wrapper:last-child) {
-  border-radius: 4px !important;  /* 确保首尾按钮都是圆角 */
-}
-
-.themeSelector :global(.ant-radio-button-wrapper-checked) {
-  z-index: 1 !important;  /* 确保选中的按钮在最上层 */
-}
-
-/* 覆盖默认的相邻边框样式 */
-.themeSelector :global(.ant-radio-button-wrapper:not(:first-child)) {
-  margin-left: 0 !important;
+.settingsForm :global(.ant-divider-with-text::before),
+.settingsForm :global(.ant-divider-with-text::after) {
+  border-top-color: #e8e8e8;
 } 

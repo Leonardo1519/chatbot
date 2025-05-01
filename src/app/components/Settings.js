@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Form, Input, Select, Slider, Button, Space, Radio, Spin, Alert, Divider, Upload, Avatar, message } from 'antd';
 import { PlusOutlined, CheckCircleOutlined, LoadingOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons';
 import styles from './Settings.module.css';
-import { isClient, DEFAULT_API_KEY, validateApiKey, checkAndUpdateApiKeyStatus, saveUserAvatar, loadUserAvatar } from '../utils/storage';
+import { isClient, DEFAULT_API_KEY, validateApiKey, checkAndUpdateApiKeyStatus, saveUserAvatar, loadUserAvatar, AVAILABLE_THEMES, DEFAULT_THEME, saveSettings, loadSettings } from '../utils/storage';
 
 const { Option } = Select;
 
@@ -11,6 +11,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('deepseek-ai/DeepSeek-V2.5');
   const [temperature, setTemperature] = useState(0.5);
+  const [theme, setTheme] = useState(DEFAULT_THEME);
   const [showApiHelp, setShowApiHelp] = useState(false);
   const [isUsingDefaultKey, setIsUsingDefaultKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -39,19 +40,31 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     }
   }, []);
 
+  // 初始化组件状态
   useEffect(() => {
+    // 设置默认主题为蓝色
+    setTheme(DEFAULT_THEME);
+    
     if (settings) {
       setApiKey(settings.apiKey || '');
       // 首次加载时使用默认值，之后保留用户设置
       setModel(settings.model || 'deepseek-ai/DeepSeek-V2.5');
-      setTemperature(settings.temperature || 0.5);
+      
+      // 如果settings中有温度设置，使用用户设置的值；否则使用默认值0.5
+      const tempValue = settings.temperature !== undefined ? settings.temperature : 0.5;
+      setTemperature(tempValue);
+      
+      // 确保主题设置为默认的蓝色
+      setTheme(DEFAULT_THEME);
       
       setIsUsingDefaultKey(settings.apiKey === DEFAULT_API_KEY);
       
-      // 如果是首次加载或值为空，使用默认值，否则使用用户保存的设置
+      // 如果是首次加载或值为空，使用默认值，否则使用用户保存的设置，但主题始终为蓝色
       form.setFieldsValue({
         ...settings,
-        model: settings.model || 'deepseek-ai/DeepSeek-V2.5'
+        model: settings.model || 'deepseek-ai/DeepSeek-V2.5',
+        temperature: tempValue, // 确保表单中的温度值与状态一致
+        theme: DEFAULT_THEME // 强制使用蓝色主题
       });
     }
     
@@ -87,12 +100,61 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   }, [apiKey, isUsingDefaultKey]);
 
   const handleSubmit = (values) => {
-    // 保存用户选择的值，不强制修改
+    // 保存用户选择的值
     const updatedValues = {
       ...values,
-      model: values.model
+      model: values.model,
+      temperature: values.temperature, // 确保温度值正确保存
+      theme: values.theme
     };
+    
+    // 只在点击保存按钮时应用主题颜色
+    if (isClient) {
+      const themeObj = AVAILABLE_THEMES.find(t => t.key === values.theme) || AVAILABLE_THEMES[0];
+      
+      // 强制应用颜色设置
+      const root = document.documentElement;
+      root.style.setProperty('--primary-color', themeObj.primary);
+      
+      // 创建一个临时样式表强制应用主题颜色
+      const stylesheet = document.createElement('style');
+      stylesheet.textContent = `
+        :root {
+          --primary-color: ${themeObj.primary} !important;
+        }
+      `;
+      document.head.appendChild(stylesheet);
+      setTimeout(() => document.head.removeChild(stylesheet), 100);
+      
+      // 触发主题变化事件
+      window.dispatchEvent(new CustomEvent('themeChange'));
+    }
+    
+    // 关闭设置面板，保存设置
     onSave(updatedValues);
+  };
+  
+  // 处理取消按钮点击
+  const handleCancel = () => {
+    // 重置表单值为原始设置值
+    form.setFieldsValue({
+      ...settings,
+      model: settings.model || 'deepseek-ai/DeepSeek-V2.5',
+      temperature: settings.temperature !== undefined ? settings.temperature : 0.5,
+      theme: settings.theme || DEFAULT_THEME
+    });
+    
+    // 重置状态值
+    setApiKey(settings.apiKey || '');
+    setModel(settings.model || 'deepseek-ai/DeepSeek-V2.5');
+    setTemperature(settings.temperature !== undefined ? settings.temperature : 0.5);
+    setTheme(settings.theme || DEFAULT_THEME);
+    
+    // 清除验证错误消息
+    setValidationError('');
+    
+    // 不应用任何颜色变更，直接关闭设置面板
+    onClose();
   };
   
   const toggleApiHelp = () => {
@@ -143,6 +205,24 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       onSuccess();
     }, 500);
   };
+
+  // 处理主题变更
+  const handleThemeChange = (e) => {
+    const newTheme = e.target.value;
+    setTheme(newTheme);
+    
+    // 更新表单数据
+    form.setFieldsValue({ theme: newTheme });
+    
+    // 不在选择主题时立即应用颜色变更，只是预览颜色
+    // 实际的颜色变更会在点击保存按钮时应用
+  };
+
+  // 处理温度滑块值变化
+  const handleTemperatureChange = (value) => {
+    setTemperature(value);
+    form.setFieldsValue({ temperature: value });
+  };
   
   if (!visible) return null;
   
@@ -184,6 +264,41 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           支持JPG, PNG格式, 小于2MB的图片文件
         </div>
       </div>
+
+      <Divider orientation="center">界面设置</Divider>
+      <Form.Item
+        label="主题颜色"
+        name="theme"
+        rules={[{ required: true, message: '请选择主题颜色' }]}
+        tooltip="选择不同的主题颜色，改变界面的整体风格"
+      >
+        <Radio.Group 
+          className={styles.themeSelector}
+          onChange={handleThemeChange}
+          value={theme}
+          buttonStyle="solid"
+        >
+          {AVAILABLE_THEMES.map((themeItem) => (
+            <Radio.Button 
+              key={themeItem.key} 
+              value={themeItem.key}
+              style={{
+                backgroundColor: themeItem.primary,
+                borderColor: themeItem.primary,
+                color: 'white',
+                fontWeight: theme === themeItem.key ? 'bold' : 'normal',
+                cursor: 'pointer',
+                outline: theme === themeItem.key ? `2px solid ${themeItem.primary}` : 'none',
+                outlineOffset: '2px'
+              }}
+            >
+              {themeItem.name}
+            </Radio.Button>
+          ))}
+        </Radio.Group>
+      </Form.Item>
+
+      <div style={{ marginBottom: '50px' }}></div>
 
       <Divider orientation="center">接口设置</Divider>
       <Form.Item
@@ -242,20 +357,22 @@ export default function Settings({ visible, onClose, settings, onSave }) {
             0.5: '平衡',
             1: '创意'
           }}
+          onChange={handleTemperatureChange}
+          value={temperature}
         />
       </Form.Item>
 
       <Form.Item>
         <div style={{ 
           display: 'flex', 
-          justifyContent: 'center', 
+          justifyContent: 'center',
           marginTop: '30px' 
         }}>
           <Space size="small">
             <Button type="primary" htmlType="submit">
               保存
             </Button>
-            <Button onClick={onClose}>
+            <Button onClick={handleCancel}>
               取消
             </Button>
           </Space>

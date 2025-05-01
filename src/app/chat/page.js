@@ -1,16 +1,14 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Layout, Input, Button, Drawer, List, Typography, Space, Tooltip, Modal } from 'antd';
 import { SendOutlined, SettingOutlined, PlusOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import styles from './page.module.css';
-import Settings from '../components/Settings';
 import ChatMessage from '../components/ChatMessage';
-import ClientOnly from '../components/ClientOnly';
-import ApiKeyInfo from '../components/ApiKeyInfo';
-import EnvTest from '../components/EnvTest';
-import { streamMessage } from '../api/siliconflow';
-import { saveSettings, loadSettings, saveHistory, loadHistory, isClient, DEFAULT_API_KEY, getApiKey, saveSessions, loadSessions } from '../utils/storage';
+import Settings from '../components/Settings';
+import styles from './page.module.css';
+import { saveSettings, loadSettings, saveHistory, loadHistory, isClient, DEFAULT_API_KEY, getApiKey, saveSessions, loadSessions, getTheme, getThemeColor, DEFAULT_THEME, AVAILABLE_THEMES } from '../utils/storage';
+import { v4 as uuidv4 } from 'uuid';
+import { streamMessage } from '../api/siliconflow.js';
 
 const { Header, Sider, Content } = Layout;
 const { TextArea } = Input;
@@ -27,7 +25,7 @@ const DEFAULT_SETTINGS = {
   apiKey: DEFAULT_API_KEY, // 使用预设的API密钥
   model: 'deepseek-ai/DeepSeek-V2.5',
   temperature: 0.5,  // 设置为平衡值0.5
-  themeColor: 'default'
+  themeColor: 'blue'
 };
 
 // 聊天会话结构
@@ -94,6 +92,43 @@ export default function ChatPage() {
   
   const chatMessagesRef = useRef(null);
   
+  // 主题
+  const [currentTheme, setCurrentTheme] = useState('');
+  const [primaryColor, setPrimaryColor] = useState('');
+  
+  // 监听主题变化
+  useEffect(() => {
+    if (isClient) {
+      // 初始设置主题颜色
+      const theme = getTheme();
+      setCurrentTheme(theme);
+      
+      // 从CSS变量获取主题颜色，确保使用最新的颜色设置
+      const getCurrentPrimaryColor = () => {
+        const root = document.documentElement;
+        const primaryColor = getComputedStyle(root).getPropertyValue('--primary-color').trim();
+        return primaryColor || getThemeColor(theme);
+      };
+      
+      setPrimaryColor(getCurrentPrimaryColor());
+      
+      const handleThemeChange = () => {
+        const newTheme = getTheme();
+        setCurrentTheme(newTheme);
+        // 使用CSS变量中的颜色，确保颜色变化即时反映
+        setPrimaryColor(getCurrentPrimaryColor());
+      };
+      
+      window.addEventListener('storage', handleThemeChange);
+      window.addEventListener('themeChange', handleThemeChange);
+      
+      return () => {
+        window.removeEventListener('storage', handleThemeChange);
+        window.removeEventListener('themeChange', handleThemeChange);
+      };
+    }
+  }, []);
+
   // 初始化加载设置和历史消息 - 仅在客户端执行
   useEffect(() => {
     if (isClient) {
@@ -104,12 +139,20 @@ export default function ChatPage() {
         if (!savedSettings.apiKey) {
           savedSettings.apiKey = DEFAULT_API_KEY;
         }
+        // 强制使用蓝色主题作为默认值
+        savedSettings.theme = DEFAULT_THEME;
         setSettings(savedSettings);
         saveSettings(savedSettings);
       } else {
         // 首次使用时，设置默认值
         setSettings(DEFAULT_SETTINGS);
         saveSettings(DEFAULT_SETTINGS);
+      }
+      
+      // 强制使用蓝色主题设置CSS变量
+      const themeObj = AVAILABLE_THEMES.find(t => t.key === DEFAULT_THEME);
+      if (themeObj && document.documentElement) {
+        document.documentElement.style.setProperty('--primary-color', themeObj.primary);
       }
       
       const savedSessions = loadSessions();
@@ -323,10 +366,42 @@ export default function ChatPage() {
     // 检查API密钥是否发生变化
     const apiKeyChanged = settings.apiKey !== newSettings.apiKey;
     
+    // 允许用户在当前会话中应用新主题，但实际保存到存储中的仍是默认蓝色主题
+    const currentTheme = newSettings.theme;
+    
+    // 为保存到存储中的设置强制使用蓝色主题
+    const savedSettings = {
+      ...newSettings,
+      theme: DEFAULT_THEME // 实际存储的主题始终为蓝色
+    };
+    
+    // 状态中使用用户选择的临时主题
+    newSettings.theme = currentTheme;
     setSettings(newSettings);
+    
     if (isClient) {
-      saveSettings(newSettings);
+      // 保存设置到localStorage (实际存储的主题始终为蓝色)
+      saveSettings(savedSettings);
+      
+      // 应用用户选择的临时主题颜色
+      const themeObj = AVAILABLE_THEMES.find(t => t.key === currentTheme) || AVAILABLE_THEMES[0];
+      
+      if (themeObj) {
+        // 设置CSS变量
+        document.documentElement.style.setProperty('--primary-color', themeObj.primary);
+        
+        // 创建一个临时样式表强制应用主题颜色
+        const stylesheet = document.createElement('style');
+        stylesheet.textContent = `
+          :root {
+            --primary-color: ${themeObj.primary} !important;
+          }
+        `;
+        document.head.appendChild(stylesheet);
+        setTimeout(() => document.head.removeChild(stylesheet), 100);
+      }
     }
+    
     setError(''); // 清除错误消息
     
     // 如果API密钥已更改，且之前有错误，显示鼓励消息
@@ -368,6 +443,7 @@ export default function ChatPage() {
           <Button
             icon={<PlusOutlined />}
             onClick={createNewSession}
+            style={{ borderColor: primaryColor, color: primaryColor }}
           >
             新会话
           </Button>
@@ -379,6 +455,7 @@ export default function ChatPage() {
             <List.Item
               className={`${styles.sessionItem} ${session.id === currentSessionId ? styles.active : ''}`}
               onClick={() => switchSession(session.id)}
+              style={session.id === currentSessionId ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}
             >
               <div className={styles.sessionTitle}>
                 {editingSessionId === session.id ? (
@@ -440,12 +517,19 @@ export default function ChatPage() {
               icon={<SendOutlined />}
               onClick={sendMessage}
               disabled={!inputText.trim()}
+              style={{ 
+                backgroundColor: inputText.trim() ? primaryColor : `${primaryColor}50`, 
+                borderColor: inputText.trim() ? primaryColor : `${primaryColor}50`,
+                color: 'white',
+                opacity: inputText.trim() ? 1 : 0.7
+              }}
             >
               发送
             </Button>
             <Button
               icon={<SettingOutlined />}
               onClick={() => setIsSettingsOpen(true)}
+              style={{ borderColor: primaryColor, color: primaryColor }}
             >
               设置
             </Button>

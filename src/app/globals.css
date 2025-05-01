@@ -1,6 +1,7 @@
 :root {
   --background: #f5f5f5;
   --foreground: #171717;
+  --primary-color: #1890ff; /* 默认使用蓝色主题 */
 }
 
 @media (prefers-color-scheme: dark) {

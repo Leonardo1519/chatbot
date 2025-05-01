@@ -152,29 +152,12 @@
 }
 
 .buttonContainer {
-  margin-top: 40px;
-}
-
-.buttonContainer :global(.ant-btn) {
-  height: 50px;
-  padding: 0 40px;
-  font-size: 18px;
-  border-radius: 25px;
-  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%);
-  border: none;
-  box-shadow: 0 4px 15px rgba(24, 144, 255, 0.3);
-  transition: all 0.3s ease;
-}
-
-.buttonContainer :global(.ant-btn:hover) {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.4);
-  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%);
+  margin-top: 50px;
 }
 
 .buttonContainer :global(.ant-btn .anticon) {
-  font-size: 20px;
-  margin-right: 8px;
+  font-size: 22px;
+  margin-right: 10px;
 }
 
 @media (max-width: 768px) {
@@ -210,11 +193,15 @@
     margin-bottom: 20px;
     justify-content: center;
   }
-
-  .buttonContainer :global(.ant-btn) {
-    height: 44px;
-    padding: 0 30px;
-    font-size: 16px;
+  
+  /* 移动设备下的按钮样式 */
+  .buttonContainer .chatButton,
+  .main .chatButton,
+  :global(.ant-btn).chatButton {
+    height: 54px !important;
+    padding: 0 40px !important;
+    font-size: 18px !important;
+    border-radius: 27px !important;
   }
 
   .features {
@@ -393,18 +380,46 @@ a.secondary {
   }
 }
 
-.chatButton {
-  background-color: #4a8eff;
-  color: white;
-  padding: 12px 24px;
-  border-radius: 20px;
-  font-weight: bold;
-  cursor: pointer;
-  transition: background-color 0.3s;
+.chatButtonLink {
+  display: inline-block;
 }
 
-.chatButton:hover {
-  background-color: #3a7eef;
+/* 增加选择器特异性 */
+.buttonContainer .chatButton,
+.main .chatButton,
+:global(.ant-btn).chatButton {
+  height: 60px !important;
+  padding: 0 50px !important;
+  font-size: 20px !important;
+  border-radius: 30px !important;
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%) !important;
+  border: none !important;
+  box-shadow: 0 4px 15px rgba(24, 144, 255, 0.3) !important;
+  transition: all 0.3s ease !important;
+}
+
+/* 增加选择器特异性 */
+.buttonContainer .chatButton:hover,
+.main .chatButton:hover,
+:global(.ant-btn).chatButton:hover {
+  transform: translateY(-2px) !important;
+  box-shadow: 0 6px 20px rgba(24, 144, 255, 0.4) !important;
+  background: linear-gradient(135deg, #40a9ff 0%, #1890ff 100%) !important;
+}
+
+/* 增加选择器特异性 */
+.buttonContainer .chatButton:active,
+.buttonContainer .chatButton:focus,
+.main .chatButton:active,
+.main .chatButton:focus,
+:global(.ant-btn).chatButton:active,
+:global(.ant-btn).chatButton:focus {
+  background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%) !important;
+  transform: translateY(0) !important;
+  box-shadow: 0 4px 15px rgba(24, 144, 255, 0.3) !important;
+  color: white !important;
+  outline: none !important;
+  border-color: transparent !important;
 }
 
 .featureCard :global(.ant-typography) {

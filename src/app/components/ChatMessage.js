@@ -1,9 +1,9 @@
 import { Card, Avatar, Typography } from 'antd';
 import { UserOutlined, RobotOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
-import { useEffect, useState, memo } from 'react';
+import { useEffect, useState, memo, useMemo } from 'react';
 import styles from './ChatMessage.module.css';
-import { loadUserAvatar } from '../utils/storage';
+import { loadUserAvatar, getTheme, getThemeColor } from '../utils/storage';
 import ClientOnly from './ClientOnly';
 
 const { Text, Paragraph } = Typography;
@@ -88,14 +88,101 @@ export default function ChatMessage({ message, isTyping }) {
   const [userAvatar, setUserAvatar] = useState(null);
   const [expertContent, setExpertContent] = useState('');
   const [professorContent, setProfessorContent] = useState('');
+  const [currentTheme, setCurrentTheme] = useState('');
   
-  // 加载用户头像
+  // 加载用户头像和主题
   useEffect(() => {
     const savedAvatar = loadUserAvatar();
     if (savedAvatar) {
       setUserAvatar(savedAvatar);
     }
+    
+    // 获取当前主题
+    const theme = getTheme();
+    setCurrentTheme(theme);
+    
+    // 监听主题变化
+    const handleThemeChange = () => {
+      const newTheme = getTheme();
+      setCurrentTheme(newTheme);
+    };
+    
+    // 添加CSS变量监听以实时响应主题变化
+    const observeCSSVariableChanges = () => {
+      if (typeof window === 'undefined' || !window.MutationObserver) return;
+      
+      const targetNode = document.documentElement;
+      const config = { attributes: true, attributeFilter: ['style'] };
+      
+      const callback = () => {
+        // 当CSS变量变化时，强制重新获取主题
+        handleThemeChange();
+      };
+      
+      const observer = new MutationObserver(callback);
+      observer.observe(targetNode, config);
+      
+      return () => observer.disconnect();
+    };
+    
+    // 启动CSS变量监听
+    const unobserve = observeCSSVariableChanges();
+    
+    window.addEventListener('storage', handleThemeChange);
+    window.addEventListener('themeChange', handleThemeChange);
+    
+    return () => {
+      window.removeEventListener('storage', handleThemeChange);
+      window.removeEventListener('themeChange', handleThemeChange);
+      if (unobserve) unobserve();
+    };
   }, []);
+  
+  // 生成基于主题的样式
+  const themeStyles = useMemo(() => {
+    // 获取主题颜色
+    const themeColor = getThemeColor(currentTheme);
+    
+    // 动态生成颜色变体
+    const lightThemeColor = `${themeColor}15`; // 更淡的颜色用于背景 (15% 透明度)
+    const mediumThemeColor = `${themeColor}25`; // 中等强度用于用户消息 (25% 透明度)
+    const borderThemeColor = `${themeColor}40`; // 中等强度用于边框 (40% 透明度)
+    const professorThemeColor = `${themeColor}10`; // 最淡的颜色用于教授消息 (10% 透明度)
+    
+    return {
+      // 用户气泡样式
+      senderBubble: {
+        backgroundColor: mediumThemeColor,
+        border: `1px solid ${borderThemeColor}`,
+      },
+      // 用户文本样式
+      senderText: {
+        color: '#000000',
+      },
+      // AI专家气泡样式
+      receiverBubble: {
+        backgroundColor: lightThemeColor,
+        border: `1px solid ${borderThemeColor}`,
+      },
+      // AI专家文本样式
+      receiverText: {
+        color: '#000000',
+      },
+      // 教授气泡样式
+      professorBubble: {
+        backgroundColor: professorThemeColor,
+        border: `1px solid ${borderThemeColor}`,
+      },
+      // 教授文本样式
+      professorText: {
+        color: '#000000',
+      },
+      // 输入指示器点样式
+      dot: {
+        backgroundColor: themeColor
+      }
+    };
+  }, [currentTheme]);
   
   // 当消息内容变化时，处理分割IT专家和教授的回复
   useEffect(() => {
@@ -144,6 +231,13 @@ export default function ChatMessage({ message, isTyping }) {
     return 'IT专家';
   };
 
+  // 给MarkdownContent组件添加样式
+  const MarkdownContentWithStyle = ({ content, textStyle }) => (
+    <div style={textStyle}>
+      <MarkdownContent content={content} />
+    </div>
+  );
+
   // 如果是用户消息，直接显示
   if (message.isSender) {
     return (
@@ -158,8 +252,11 @@ export default function ChatMessage({ message, isTyping }) {
           </Text>
         </div>
         <div className={`${styles.message} ${styles.sender}`}>
-          <div className={`${styles.messageContent}`}>
-            <MarkdownContent content={message.text} />
+          <div 
+            className={`${styles.messageContent}`}
+            style={themeStyles.senderBubble}
+          >
+            <MarkdownContentWithStyle content={message.text} textStyle={themeStyles.senderText} />
           </div>
         </div>
       </div>
@@ -181,14 +278,17 @@ export default function ChatMessage({ message, isTyping }) {
           </Text>
         </div>
         <div className={`${styles.message} ${styles.receiver}`}>
-          <div className={`${styles.messageContent}`}>
-            <MarkdownContent content={expertContent} />
+          <div 
+            className={`${styles.messageContent}`}
+            style={themeStyles.receiverBubble}
+          >
+            <MarkdownContentWithStyle content={expertContent} textStyle={themeStyles.receiverText} />
           </div>
           {isTyping && (
             <span className={styles.typingIndicator}>
-              <span className={styles.dot}></span>
-              <span className={styles.dot}></span>
-              <span className={styles.dot}></span>
+              <span className={styles.dot} style={themeStyles.dot}></span>
+              <span className={styles.dot} style={themeStyles.dot}></span>
+              <span className={styles.dot} style={themeStyles.dot}></span>
             </span>
           )}
         </div>
@@ -207,8 +307,11 @@ export default function ChatMessage({ message, isTyping }) {
             </Text>
           </div>
           <div className={`${styles.message} ${styles.professorMessage}`}>
-            <div className={`${styles.messageContent}`}>
-              <MarkdownContent content={professorContent} />
+            <div 
+              className={`${styles.messageContent}`}
+              style={themeStyles.professorBubble}
+            >
+              <MarkdownContentWithStyle content={professorContent} textStyle={themeStyles.professorText} />
             </div>
           </div>
         </div>

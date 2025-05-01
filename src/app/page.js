@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import Link from 'next/link';
 import { Card, Typography, Button, Space, Layout, Row, Col } from 'antd';
 import { MessageOutlined, RobotOutlined, SettingOutlined } from '@ant-design/icons';
@@ -9,6 +10,28 @@ const { Title, Paragraph } = Typography;
 const { Content } = Layout;
 
 export default function Home() {
+  // 强制刷新样式
+  useEffect(() => {
+    // 刷新页面样式，解决可能的缓存问题
+    const styleElement = document.createElement('style');
+    styleElement.textContent = `
+      .${styles.chatButton} {
+        height: 60px !important;
+        padding: 0 50px !important;
+        font-size: 20px !important;
+        border-radius: 30px !important;
+        background: linear-gradient(135deg, #1890ff 0%, #096dd9 100%) !important;
+        border: none !important;
+        box-shadow: 0 4px 15px rgba(24, 144, 255, 0.3) !important;
+      }
+    `;
+    document.head.appendChild(styleElement);
+    
+    return () => {
+      document.head.removeChild(styleElement);
+    };
+  }, []);
+
   return (
     <Layout className={styles.main}>
       <Content className={styles.content}>
@@ -43,8 +66,22 @@ export default function Home() {
             </Col>
           </Row>
           <div className={styles.buttonContainer}>
-            <Link href="/chat">
-              <Button type="primary" size="large" icon={<MessageOutlined />}>
+            <Link href="/chat" className={styles.chatButtonLink}>
+              <Button 
+                type="primary" 
+                size="large" 
+                icon={<MessageOutlined />}
+                className={styles.chatButton}
+                style={{ 
+                  height: '60px', 
+                  padding: '0 50px', 
+                  fontSize: '20px', 
+                  borderRadius: '30px',
+                  background: 'linear-gradient(135deg, #1890ff 0%, #096dd9 100%)',
+                  border: 'none',
+                  boxShadow: '0 4px 15px rgba(24, 144, 255, 0.3)'
+                }}
+              >
                 进入聊天室
               </Button>
             </Link>

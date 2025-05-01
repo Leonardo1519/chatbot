@@ -17,6 +17,18 @@ const getEnvApiKey = () => {
 export const DEFAULT_API_KEY = getEnvApiKey() || 
   'sk-koputwketvnnikxxsrcfldtiebmgigjbcnliiskzsxyvuvui'; // 如果环境变量不可用，使用备用密钥
 
+// 默认主题颜色
+export const DEFAULT_THEME = 'blue';
+
+// 可用的主题颜色列表
+export const AVAILABLE_THEMES = [
+  { key: 'blue', name: '蓝色', primary: '#1890ff' },
+  { key: 'green', name: '绿色', primary: '#52c41a' },
+  { key: 'purple', name: '紫色', primary: '#722ed1' },
+  { key: 'orange', name: '橙色', primary: '#fa8c16' },
+  { key: 'red', name: '红色', primary: '#f5222d' }
+];
+
 // 获取API密钥，优先使用用户配置的密钥，如果没有则使用默认密钥
 export function getApiKey() {
   if (!isClient) return DEFAULT_API_KEY;
@@ -42,6 +54,19 @@ export function getApiKey() {
     console.error('获取API密钥时出错:', error);
     return DEFAULT_API_KEY;
   }
+}
+
+// 获取当前主题
+export function getTheme() {
+  // 每次打开聊天机器人时，始终返回蓝色作为默认主题
+  return DEFAULT_THEME; // 蓝色主题
+}
+
+// 获取主题色值
+export function getThemeColor(theme = null) {
+  const currentTheme = theme || getTheme();
+  const themeObj = AVAILABLE_THEMES.find(t => t.key === currentTheme);
+  return themeObj ? themeObj.primary : AVAILABLE_THEMES[0].primary;
 }
 
 // 验证API密钥是否有效
@@ -128,6 +153,11 @@ export function loadSettings() {
     
     if (parsedSettings.temperature === undefined) {
       parsedSettings.temperature = 0.5; // 设置为平衡值
+    }
+    
+    // 确保默认主题为蓝色
+    if (!parsedSettings.theme) {
+      parsedSettings.theme = DEFAULT_THEME; // 蓝色主题
     }
     
     return parsedSettings;
