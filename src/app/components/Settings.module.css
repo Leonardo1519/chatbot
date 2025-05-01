@@ -241,12 +241,18 @@
 }
 
 .settingsForm :global(.ant-space) {
-  width: 100%;
-  justify-content: flex-end;
+  width: auto;
+  justify-content: center;
 }
 
 .settingsForm :global(.ant-btn) {
   min-width: 80px;
+  margin: 0 5px;
+}
+
+.settingsForm :global(.ant-form-item:last-child) {
+  margin-bottom: 10px;
+  padding-bottom: 20px;
 }
 
 .avatarUploadContainer {
@@ -287,15 +293,26 @@
 }
 
 .themeSelector {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
+  display: grid !important;
+  grid-template-columns: repeat(3, 1fr) !important;
+  gap: 12px !important;
   width: 100%;
 }
 
 .themeSelector :global(.ant-radio-button-wrapper) {
-  margin-bottom: 8px;
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  height: 36px !important;
+  text-align: center !important;
   border-radius: 4px !important;
+  margin-right: 0 !important;
+  border-left-width: 1px !important;
+}
+
+/* 移除按钮之间的连接线 */
+.themeSelector :global(.ant-radio-button-wrapper::before) {
+  display: none !important;
 }
 
 /* 主题颜色预览 */
@@ -323,4 +340,18 @@
 .themeSelector :global(.ant-radio-button-wrapper:nth-child(5)) {
   background-color: #f9f0ff;
   border-color: #d3adf7;
+}
+
+.themeSelector :global(.ant-radio-button-wrapper:first-child),
+.themeSelector :global(.ant-radio-button-wrapper:last-child) {
+  border-radius: 4px !important;  /* 确保首尾按钮都是圆角 */
+}
+
+.themeSelector :global(.ant-radio-button-wrapper-checked) {
+  z-index: 1 !important;  /* 确保选中的按钮在最上层 */
+}
+
+/* 覆盖默认的相邻边框样式 */
+.themeSelector :global(.ant-radio-button-wrapper:not(:first-child)) {
+  margin-left: 0 !important;
 } 

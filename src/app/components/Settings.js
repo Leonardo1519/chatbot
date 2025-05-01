@@ -264,28 +264,29 @@ export default function Settings({ visible, onClose, settings, onSave }) {
         tooltip="选择聊天界面的主题颜色"
       >
         <Radio.Group 
-          options={themeOptions} 
+          options={themeOptions}
           onChange={(e) => setThemeColor(e.target.value)}
           optionType="button"
           buttonStyle="solid"
           className={styles.themeSelector}
-          style={{ 
-            display: 'grid', 
-            gridTemplateColumns: 'repeat(3, 1fr)', 
-            gap: '12px' 
-          }}
         />
       </Form.Item>
 
       <Form.Item>
-        <Space>
-          <Button type="primary" htmlType="submit">
-            保存
-          </Button>
-          <Button onClick={onClose}>
-            取消
-          </Button>
-        </Space>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'center', 
+          marginTop: '30px' 
+        }}>
+          <Space size="small">
+            <Button type="primary" htmlType="submit">
+              保存
+            </Button>
+            <Button onClick={onClose}>
+              取消
+            </Button>
+          </Space>
+        </div>
       </Form.Item>
     </Form>
   );
