@@ -51,11 +51,19 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   useEffect(() => {
     if (settings) {
       setApiKey(settings.apiKey || '');
+      // 首次加载时使用默认值，之后保留用户设置
       setModel(settings.model || 'deepseek-ai/DeepSeek-V2.5');
       setTemperature(settings.temperature || 0.7);
       setThemeColor(settings.themeColor || 'default');
       
       setIsUsingDefaultKey(settings.apiKey === DEFAULT_API_KEY);
+      
+      // 如果是首次加载或值为空，使用默认值，否则使用用户保存的设置
+      form.setFieldsValue({
+        ...settings,
+        model: settings.model || 'deepseek-ai/DeepSeek-V2.5',
+        themeColor: settings.themeColor || 'default'
+      });
     }
     
     // 模拟模型加载
@@ -63,7 +71,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     setTimeout(() => {
       setModelsLoading(false);
     }, 1000);
-  }, [settings]);
+  }, [settings, form]);
 
   // 自动验证API密钥
   useEffect(() => {
@@ -90,10 +98,11 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   }, [apiKey, isUsingDefaultKey]);
 
   const handleSubmit = (values) => {
-    // 确保主题颜色被包含在保存的设置中
+    // 保存用户选择的值，不强制修改
     const updatedValues = {
       ...values,
-      themeColor: themeColor
+      model: values.model,
+      themeColor: values.themeColor
     };
     onSave(updatedValues);
   };
@@ -217,12 +226,12 @@ export default function Settings({ visible, onClose, settings, onSave }) {
         label="模型"
         name="model"
         rules={[{ required: true, message: '请选择模型' }]}
-        extra={modelsLoading ? "正在加载可用模型..." : "请选择一个AI语言模型"}
+        extra="默认选择 DeepSeek V2.5 模型，您可以根据需要更改"
       >
         {modelsLoading ? (
-          <Select placeholder="加载中..." loading disabled />
+          <Select placeholder="加载中..." loading />
         ) : (
-          <Select placeholder="选择模型">
+          <Select placeholder="选择模型" onChange={(value) => setModel(value)}>
             {models.map((m) => (
               <Option key={m.id} value={m.id}>{m.name}</Option>
             ))}
@@ -260,6 +269,11 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           optionType="button"
           buttonStyle="solid"
           className={styles.themeSelector}
+          style={{ 
+            display: 'grid', 
+            gridTemplateColumns: 'repeat(3, 1fr)', 
+            gap: '12px' 
+          }}
         />
       </Form.Item>
 

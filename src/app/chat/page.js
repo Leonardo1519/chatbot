@@ -99,13 +99,17 @@ export default function ChatPage() {
   useEffect(() => {
     if (isClient) {
       const savedSettings = loadSettings();
+      
       if (Object.keys(savedSettings).length > 0) {
+        // 如果已有保存的设置，只在API密钥为空时设置默认值
         if (!savedSettings.apiKey) {
           savedSettings.apiKey = DEFAULT_API_KEY;
-          saveSettings(savedSettings);
         }
         setSettings(savedSettings);
+        saveSettings(savedSettings);
       } else {
+        // 首次使用时，设置默认值
+        setSettings(DEFAULT_SETTINGS);
         saveSettings(DEFAULT_SETTINGS);
       }
       
