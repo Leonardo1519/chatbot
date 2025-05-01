@@ -9,6 +9,10 @@ const nextConfig = {
   images: {
     domains: ['localhost'],
   },
+  // 设置实验性功能
+  experimental: {
+    appDocumentPreloading: false,
+  },
 };
 
 export default nextConfig;

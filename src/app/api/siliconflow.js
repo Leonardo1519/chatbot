@@ -51,7 +51,7 @@ export function handleApiError(error) {
 }
 
 // 向SiliconFlow发送对话消息并获取响应
-export async function sendMessage(apiKey, messages, model = 'deepseek-ai/DeepSeek-V2.5') {
+export async function sendMessage(apiKey, messages, model = 'deepseek-ai/DeepSeek-V2.5', temperature = 0.7) {
   try {
     // 确保有API密钥
     const actualApiKey = apiKey || getApiKey();
@@ -90,7 +90,7 @@ export async function sendMessage(apiKey, messages, model = 'deepseek-ai/DeepSee
           content: msg.text
         }))
       ],
-      temperature: 0.7,
+      temperature: temperature,
       max_tokens: 1024,
       stream: false // 非流式响应
     });
@@ -106,7 +106,7 @@ export async function sendMessage(apiKey, messages, model = 'deepseek-ai/DeepSee
 }
 
 // 流式发送消息并获取响应
-export async function streamMessage(apiKey, messages, onChunk, onComplete, onError, model = 'deepseek-ai/DeepSeek-V2.5') {
+export async function streamMessage(apiKey, messages, onChunk, onComplete, onError, model = 'deepseek-ai/DeepSeek-V2.5', temperature = 0.7) {
   try {
     // 确保有API密钥
     const actualApiKey = apiKey || getApiKey();
@@ -149,7 +149,7 @@ export async function streamMessage(apiKey, messages, onChunk, onComplete, onErr
           content: msg.text
         }))
       ],
-      temperature: 0.7,
+      temperature: temperature,
       max_tokens: 1024,
       stream: true // 流式响应
     });

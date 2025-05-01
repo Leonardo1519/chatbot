@@ -27,7 +27,8 @@ const DEFAULT_WELCOME_MESSAGE = {
 const DEFAULT_SETTINGS = {
   apiKey: DEFAULT_API_KEY, // 使用预设的API密钥
   model: 'deepseek-ai/DeepSeek-V2.5',
-  temperature: 0.7
+  temperature: 0.7,
+  themeColor: 'default'
 };
 
 // 聊天会话结构
@@ -200,74 +201,60 @@ export default function ChatPage() {
     }
   };
 
-  // 发送消息到SiliconFlow API
+  // 发送消息
   const sendMessage = async () => {
-    if (inputText.trim() === '') return;
+    if (!inputText.trim()) return;
     
-    // 清除之前的错误
-    setError('');
+    const userMessage = { text: inputText.trim(), isSender: true };
+    const tempAiMessage = { text: '', isSender: false, isLoading: true };
     
-    // 获取当前API密钥（优先使用用户设置的，没有则使用默认值）
-    const apiKey = getApiKey();
+    // 清空输入框
+    setInputText('');
     
-    // 添加用户消息
-    const userMessage = { text: inputText, isSender: true };
+    // 添加用户消息到聊天
     const newMessages = [...messages, userMessage];
     setMessages(newMessages);
     updateCurrentSession(newMessages);
-    setInputText('');
     
-    // 创建临时AI回应消息用于显示"正在输入"状态
-    const tempAiMessage = { text: '', isSender: false, role: 'it_expert' };
-    setMessages(prev => [...prev, tempAiMessage]);
+    // 添加临时AI消息（显示加载中）
     setIsTyping(true);
+    setMessages([...newMessages, tempAiMessage]);
     
     try {
-      let aiReply = '';
+      // 用户可能在设置中自定义了API密钥和模型，从设置中获取
+      const { apiKey, model, temperature } = settings;
       
-      // 使用流式API获取IT专家的响应
+      // 调用流式API
       await streamMessage(
         apiKey,
         newMessages,
         (chunk) => {
-          // 收到流式响应的一个片段
-          aiReply += chunk;
-          const updatedMessages = [...newMessages, { ...tempAiMessage, text: aiReply }];
-          setMessages(updatedMessages);
-          updateCurrentSession(updatedMessages);
-        },
-        async (fullResponse) => {
-          // IT专家回复完成后，让计算机教授点评
-          const professorMessage = { text: '', isSender: false, role: 'professor' };
-          setMessages(prev => [...prev, professorMessage]);
-          
-          // 构建教授点评的提示词
-          const professorPrompt = `作为一位计算机教授，请对以下IT专家的回答进行专业点评：\n\n${fullResponse}`;
-          
-          // 获取教授的点评
-          let professorReply = '';
-          await streamMessage(
-            apiKey,
-            [...newMessages, { ...tempAiMessage, text: fullResponse }, { text: professorPrompt, isSender: true }],
-            (chunk) => {
-              professorReply += chunk;
-              const updatedMessages = [...newMessages, 
-                { ...tempAiMessage, text: fullResponse },
-                { ...professorMessage, text: professorReply }
-              ];
-              setMessages(updatedMessages);
-              updateCurrentSession(updatedMessages);
-            },
-            () => {
-              setIsTyping(false);
-            },
-            (error) => {
-              console.error('教授点评出错:', error);
-              const { message } = getFriendlyErrorMessage(error);
-              setError(message);
-              setIsTyping(false);
+          // 接收到流式的响应片段
+          setMessages(prev => {
+            const updated = [...prev];
+            // 更新最后一条消息（AI的响应）
+            if (updated.length > 0) {
+              const lastMsg = updated[updated.length - 1];
+              if (!lastMsg.isSender) {
+                lastMsg.text += chunk;
+                lastMsg.isLoading = false;
+              }
             }
-          );
+            return updated;
+          });
+          
+          // 滚动到底部
+          if (chatMessagesRef.current) {
+            chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+          }
+        },
+        (fullResponse) => {
+          // 完成
+          setIsTyping(false);
+          // 更新聊天历史
+          const completeMessages = [...newMessages, { text: fullResponse, isSender: false }];
+          setMessages(completeMessages);
+          updateCurrentSession(completeMessages);
         },
         (error) => {
           // 出错
@@ -284,7 +271,9 @@ export default function ChatPage() {
           const errorMessages = [...newMessages, { ...tempAiMessage, text: '抱歉，我遇到了一些问题。' + message }];
           setMessages(errorMessages);
           updateCurrentSession(errorMessages);
-        }
+        },
+        model,
+        temperature
       );
     } catch (error) {
       console.error('发送消息时出错:', error);
@@ -310,6 +299,22 @@ export default function ChatPage() {
     }
   };
   
+  // 应用主题颜色的类名
+  const getThemeClassName = () => {
+    switch (settings.themeColor) {
+      case 'dark':
+        return styles.themeDark;
+      case 'blue':
+        return styles.themeBlue;
+      case 'green': 
+        return styles.themeGreen;
+      case 'purple':
+        return styles.themePurple;
+      default:
+        return '';
+    }
+  };
+
   // 保存设置
   const handleSaveSettings = (newSettings) => {
     // 检查API密钥是否发生变化
@@ -329,6 +334,9 @@ export default function ChatPage() {
       };
       setMessages(prev => [...prev, encourageMessage]);
     }
+    
+    // 关闭设置面板
+    setIsSettingsOpen(false);
   };
   
   // 清空聊天 - 使用客户端确认
@@ -350,8 +358,8 @@ export default function ChatPage() {
   };
   
   return (
-    <Layout className={styles.main}>
-      <Sider width={250} theme="light" className={styles.sidebar}>
+    <Layout className={`${styles.main} ${getThemeClassName()}`}>
+      <Sider width={250} theme={settings.themeColor === 'dark' ? 'dark' : 'light'} className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <Title level={4}>聊天会话</Title>
           <Button
@@ -450,6 +458,7 @@ export default function ChatPage() {
         width={400}
       >
         <Settings
+          visible={isSettingsOpen}
           settings={settings}
           onSave={handleSaveSettings}
           onClose={() => setIsSettingsOpen(false)}

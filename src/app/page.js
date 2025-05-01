@@ -19,7 +19,7 @@ export default function Home() {
           <Paragraph className={styles.description}>
             欢迎使用卡皮巴拉AI助手，这是一个智能的对话系统，可以帮助你解答各种问题。
           </Paragraph>
-          <Row gutter={[24, 24]} className={styles.features}>
+          <Row gutter={[24, 24]} className={styles.features} justify="center" align="middle">
             <Col xs={24} sm={8}>
               <Card className={styles.featureCard}>
                 <MessageOutlined className={styles.featureIcon} />

@@ -435,4 +435,141 @@
   .sendButton {
     padding: 0 15px;
   }
+}
+
+/* 主题样式 */
+.themeDark {
+  background-color: #141414;
+  color: #fff;
+}
+
+.themeDark :global(.ant-layout-content) {
+  background-color: #1f1f1f;
+}
+
+.themeDark .messagesContainer {
+  background-color: #1f1f1f;
+}
+
+.themeDark .inputContainer {
+  background-color: #141414;
+  border-top: 1px solid #303030;
+}
+
+.themeDark :global(.ant-input) {
+  background-color: #1f1f1f;
+  color: #fff;
+  border-color: #303030;
+}
+
+.themeDark :global(.ant-btn-default) {
+  background-color: #1f1f1f;
+  color: #fff;
+  border-color: #303030;
+}
+
+.themeDark :global(.ant-btn-primary) {
+  color: #fff !important;
+}
+
+/* 蓝色主题 */
+.themeBlue {
+  background-color: #e6f7ff;
+}
+
+.themeBlue :global(.ant-layout-content) {
+  background-color: #f0f8ff;
+}
+
+.themeBlue .inputContainer {
+  background-color: #e6f7ff;
+  border-top: 1px solid #91d5ff;
+}
+
+.themeBlue :global(.ant-btn-primary) {
+  background-color: #1890ff;
+  color: #fff !important;
+}
+
+/* 绿色主题 */
+.themeGreen {
+  background-color: #f6ffed;
+}
+
+.themeGreen :global(.ant-layout-content) {
+  background-color: #f9fff0;
+}
+
+.themeGreen .inputContainer {
+  background-color: #f6ffed;
+  border-top: 1px solid #b7eb8f;
+}
+
+.themeGreen :global(.ant-btn-primary) {
+  background-color: #52c41a;
+  color: #fff !important;
+}
+
+/* 紫色主题 */
+.themePurple {
+  background-color: #f9f0ff;
+}
+
+.themePurple :global(.ant-layout-content) {
+  background-color: #fcf4ff;
+}
+
+.themePurple .inputContainer {
+  background-color: #f9f0ff;
+  border-top: 1px solid #d3adf7;
+}
+
+.themePurple :global(.ant-btn-primary) {
+  background-color: #722ed1;
+  color: #fff !important;
+}
+
+/* 消息样式跟随主题 */
+.themeDark .sender,
+.themeDark .receiver {
+  background-color: #303030;
+  border-color: #404040;
+}
+
+.themeBlue .sender {
+  background-color: #e6f7ff;
+  border-color: #91d5ff;
+}
+
+.themeBlue .receiver {
+  background-color: #f0f8ff;
+  border-color: #bae7ff;
+}
+
+.themeGreen .sender {
+  background-color: #f6ffed;
+  border-color: #b7eb8f;
+}
+
+.themeGreen .receiver {
+  background-color: #f9fff0;
+  border-color: #d9f7be;
+}
+
+.themePurple .sender {
+  background-color: #f9f0ff;
+  border-color: #d3adf7;
+}
+
+.themePurple .receiver {
+  background-color: #fcf4ff;
+  border-color: #efdbff;
+}
+
+/* 按钮样式 */
+.inputContainer :global(.ant-btn-primary) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #000; /* 默认主题下按钮文字颜色为黑色 */
 } 

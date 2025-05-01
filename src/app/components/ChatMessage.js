@@ -2,14 +2,28 @@ import { Card, Avatar, Typography } from 'antd';
 import { UserOutlined, RobotOutlined } from '@ant-design/icons';
 import Image from 'next/image';
 import ReactMarkdown from 'react-markdown';
+import { useEffect, useState } from 'react';
 import styles from './ChatMessage.module.css';
+import { loadUserAvatar } from '../utils/storage';
 
 const { Text, Paragraph } = Typography;
 
 export default function ChatMessage({ message, isTyping }) {
+  const [userAvatar, setUserAvatar] = useState(null);
+  
+  // 加载用户头像
+  useEffect(() => {
+    const savedAvatar = loadUserAvatar();
+    if (savedAvatar) {
+      setUserAvatar(savedAvatar);
+    }
+  }, []);
+  
   const getAvatar = () => {
     if (message.isSender) {
-      return <Avatar icon={<UserOutlined />} />;
+      return userAvatar 
+        ? <Avatar src={userAvatar} size={40} /> 
+        : <Avatar icon={<UserOutlined />} size={40} />;
     }
     if (message.role === 'professor') {
       return (

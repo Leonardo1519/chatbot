@@ -105,7 +105,12 @@ export function saveSettings(settings) {
   if (!isClient) return false;
   
   try {
-    localStorage.setItem('chatSettings', JSON.stringify(settings));
+    // 确保themeColor存在
+    const updatedSettings = {
+      ...settings,
+      themeColor: settings.themeColor || 'default'
+    };
+    localStorage.setItem('chatSettings', JSON.stringify(updatedSettings));
     return true;
   } catch (error) {
     console.error('保存设置时出错:', error);
@@ -119,7 +124,14 @@ export function loadSettings() {
   
   try {
     const settings = localStorage.getItem('chatSettings');
-    return settings ? JSON.parse(settings) : {};
+    const parsedSettings = settings ? JSON.parse(settings) : {};
+    
+    // 确保返回的设置包含themeColor
+    if (!parsedSettings.themeColor) {
+      parsedSettings.themeColor = 'default';
+    }
+    
+    return parsedSettings;
   } catch (error) {
     console.error('加载设置时出错:', error);
     return {};
@@ -175,5 +187,30 @@ export function loadSessions() {
   } catch (error) {
     console.error('加载会话时出错:', error);
     return [];
+  }
+}
+
+// 保存用户头像
+export function saveUserAvatar(avatarDataUrl) {
+  if (!isClient) return false;
+  
+  try {
+    localStorage.setItem('userAvatar', avatarDataUrl);
+    return true;
+  } catch (error) {
+    console.error('保存用户头像时出错:', error);
+    return false;
+  }
+}
+
+// 加载用户头像
+export function loadUserAvatar() {
+  if (!isClient) return null;
+  
+  try {
+    return localStorage.getItem('userAvatar');
+  } catch (error) {
+    console.error('加载用户头像时出错:', error);
+    return null;
   }
 } 
