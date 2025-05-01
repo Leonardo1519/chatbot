@@ -319,27 +319,31 @@
 .themeSelector :global(.ant-radio-button-wrapper:nth-child(1)) {
   background-color: #f0f2f5;
   border-color: #d9d9d9;
+  color: #000;
 }
 
 .themeSelector :global(.ant-radio-button-wrapper:nth-child(2)) {
-  background-color: #141414;
-  color: white;
-  border-color: #434343;
+  background-color: #1890ff;
+  border-color: #1890ff;
+  color: #fff;
 }
 
 .themeSelector :global(.ant-radio-button-wrapper:nth-child(3)) {
-  background-color: #e6f7ff;
-  border-color: #91d5ff;
+  background-color: #52c41a;
+  border-color: #52c41a;
+  color: #fff;
 }
 
 .themeSelector :global(.ant-radio-button-wrapper:nth-child(4)) {
-  background-color: #f6ffed;
-  border-color: #b7eb8f;
+  background-color: #722ed1;
+  border-color: #722ed1;
+  color: #fff;
 }
 
 .themeSelector :global(.ant-radio-button-wrapper:nth-child(5)) {
-  background-color: #f9f0ff;
-  border-color: #d3adf7;
+  background-color: #1a1a1a;
+  border-color: #303030;
+  color: #f0f0f0;
 }
 
 .themeSelector :global(.ant-radio-button-wrapper:first-child),

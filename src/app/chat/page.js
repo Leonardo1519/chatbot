@@ -18,16 +18,15 @@ const { Title } = Typography;
 
 // 默认欢迎消息
 const DEFAULT_WELCOME_MESSAGE = { 
-  text: '你好！我是卡皮巴拉IT专家。有什么我可以帮助你的吗？', 
-  isSender: false,
-  role: 'it_expert'
+  text: '【IT专家】\n你好！我是卡皮巴拉IT专家，擅长软件开发和算法设计。有什么技术问题我可以帮助你的吗？\n\n【计算机教授点评】\n欢迎你！作为计算机学科的教授，我也会对IT专家的回答进行点评和补充，从学术和教育角度提供更深入的见解。请随时提问！', 
+  isSender: false
 };
 
 // 默认设置
 const DEFAULT_SETTINGS = {
   apiKey: DEFAULT_API_KEY, // 使用预设的API密钥
   model: 'deepseek-ai/DeepSeek-V2.5',
-  temperature: 0.7,
+  temperature: 0.5,  // 设置为平衡值0.5
   themeColor: 'default'
 };
 
@@ -228,28 +227,44 @@ export default function ChatPage() {
       // 用户可能在设置中自定义了API密钥和模型，从设置中获取
       const { apiKey, model, temperature } = settings;
       
+      // 使用缓冲区收集流式响应，减少闪烁
+      let responseBuffer = '';
+      let bufferTimer = null;
+      const BUFFER_UPDATE_INTERVAL = 100; // 100毫秒更新一次UI
+      
       // 调用流式API
       await streamMessage(
         apiKey,
         newMessages,
         (chunk) => {
-          // 接收到流式的响应片段
-          setMessages(prev => {
-            const updated = [...prev];
-            // 更新最后一条消息（AI的响应）
-            if (updated.length > 0) {
-              const lastMsg = updated[updated.length - 1];
-              if (!lastMsg.isSender) {
-                lastMsg.text += chunk;
-                lastMsg.isLoading = false;
-              }
-            }
-            return updated;
-          });
+          // 将新内容添加到缓冲区
+          responseBuffer += chunk;
           
-          // 滚动到底部
-          if (chatMessagesRef.current) {
-            chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+          // 如果定时器不存在，创建一个新的定时器来更新UI
+          if (!bufferTimer) {
+            bufferTimer = setTimeout(() => {
+              // 更新消息内容
+              setMessages(prev => {
+                const updated = [...prev];
+                // 更新最后一条消息（AI的响应）
+                if (updated.length > 0) {
+                  const lastMsg = updated[updated.length - 1];
+                  if (!lastMsg.isSender) {
+                    lastMsg.text = responseBuffer;
+                    lastMsg.isLoading = false;
+                  }
+                }
+                return updated;
+              });
+              
+              // 滚动到底部
+              if (chatMessagesRef.current) {
+                chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+              }
+              
+              // 清除定时器，允许下一次更新
+              bufferTimer = null;
+            }, BUFFER_UPDATE_INTERVAL);
           }
         },
         (fullResponse) => {
@@ -303,22 +318,6 @@ export default function ChatPage() {
     }
   };
   
-  // 应用主题颜色的类名
-  const getThemeClassName = () => {
-    switch (settings.themeColor) {
-      case 'dark':
-        return styles.themeDark;
-      case 'blue':
-        return styles.themeBlue;
-      case 'green': 
-        return styles.themeGreen;
-      case 'purple':
-        return styles.themePurple;
-      default:
-        return '';
-    }
-  };
-
   // 保存设置
   const handleSaveSettings = (newSettings) => {
     // 检查API密钥是否发生变化
@@ -362,12 +361,11 @@ export default function ChatPage() {
   };
   
   return (
-    <Layout className={`${styles.main} ${getThemeClassName()}`}>
-      <Sider width={250} theme={settings.themeColor === 'dark' ? 'dark' : 'light'} className={styles.sidebar}>
+    <Layout className={styles.main}>
+      <Sider width={250} theme="light" className={styles.sidebar}>
         <div className={styles.sidebarHeader}>
           <Title level={4}>聊天会话</Title>
           <Button
-            type="primary"
             icon={<PlusOutlined />}
             onClick={createNewSession}
           >

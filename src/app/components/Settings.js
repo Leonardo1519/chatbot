@@ -10,13 +10,12 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   const [form] = Form.useForm();
   const [apiKey, setApiKey] = useState('');
   const [model, setModel] = useState('deepseek-ai/DeepSeek-V2.5');
-  const [temperature, setTemperature] = useState(0.7);
+  const [temperature, setTemperature] = useState(0.5);
   const [showApiHelp, setShowApiHelp] = useState(false);
   const [isUsingDefaultKey, setIsUsingDefaultKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [validationError, setValidationError] = useState('');
   const [isAutoValidating, setIsAutoValidating] = useState(false);
-  const [themeColor, setThemeColor] = useState('default');
   const [modelsLoading, setModelsLoading] = useState(false);
   const [userAvatar, setUserAvatar] = useState(null);
   const [uploading, setUploading] = useState(false);
@@ -28,14 +27,6 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     { id: 'Qwen/Qwen2.5-32B-Instruct', name: 'Qwen 2.5 32B' },
     { id: 'mistralai/Mistral-7B-Instruct-v0.2', name: 'Mistral 7B' },
     { id: 'baichuan-inc/Baichuan3-Turbo', name: 'Baichuan3 Turbo' }
-  ];
-
-  const themeOptions = [
-    { label: '默认主题', value: 'default' },
-    { label: '暗黑主题', value: 'dark' },
-    { label: '蓝色主题', value: 'blue' },
-    { label: '绿色主题', value: 'green' },
-    { label: '紫色主题', value: 'purple' },
   ];
 
   // 加载用户头像
@@ -53,16 +44,14 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       setApiKey(settings.apiKey || '');
       // 首次加载时使用默认值，之后保留用户设置
       setModel(settings.model || 'deepseek-ai/DeepSeek-V2.5');
-      setTemperature(settings.temperature || 0.7);
-      setThemeColor(settings.themeColor || 'default');
+      setTemperature(settings.temperature || 0.5);
       
       setIsUsingDefaultKey(settings.apiKey === DEFAULT_API_KEY);
       
       // 如果是首次加载或值为空，使用默认值，否则使用用户保存的设置
       form.setFieldsValue({
         ...settings,
-        model: settings.model || 'deepseek-ai/DeepSeek-V2.5',
-        themeColor: settings.themeColor || 'default'
+        model: settings.model || 'deepseek-ai/DeepSeek-V2.5'
       });
     }
     
@@ -101,8 +90,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     // 保存用户选择的值，不强制修改
     const updatedValues = {
       ...values,
-      model: values.model,
-      themeColor: values.themeColor
+      model: values.model
     };
     onSave(updatedValues);
   };
@@ -162,7 +150,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     <Form
       form={form}
       layout="vertical"
-      initialValues={{...settings, themeColor: settings?.themeColor || 'default'}}
+      initialValues={{...settings}}
       onFinish={handleSubmit}
       className={styles.settingsForm}
     >
@@ -254,21 +242,6 @@ export default function Settings({ visible, onClose, settings, onSave }) {
             0.5: '平衡',
             1: '创意'
           }}
-        />
-      </Form.Item>
-
-      <Divider orientation="center">界面设置</Divider>
-      <Form.Item
-        label="界面主题颜色"
-        name="themeColor"
-        tooltip="选择聊天界面的主题颜色"
-      >
-        <Radio.Group 
-          options={themeOptions}
-          onChange={(e) => setThemeColor(e.target.value)}
-          optionType="button"
-          buttonStyle="solid"
-          className={styles.themeSelector}
         />
       </Form.Item>
 

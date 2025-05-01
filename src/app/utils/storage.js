@@ -105,12 +105,7 @@ export function saveSettings(settings) {
   if (!isClient) return false;
   
   try {
-    // 确保themeColor存在
-    const updatedSettings = {
-      ...settings,
-      themeColor: settings.themeColor || 'default'
-    };
-    localStorage.setItem('chatSettings', JSON.stringify(updatedSettings));
+    localStorage.setItem('chatSettings', JSON.stringify(settings));
     return true;
   } catch (error) {
     console.error('保存设置时出错:', error);
@@ -126,9 +121,13 @@ export function loadSettings() {
     const settings = localStorage.getItem('chatSettings');
     const parsedSettings = settings ? JSON.parse(settings) : {};
     
-    // 确保返回的设置包含themeColor
-    if (!parsedSettings.themeColor) {
-      parsedSettings.themeColor = 'default';
+    // 确保返回的设置包含默认值
+    if (!parsedSettings.model) {
+      parsedSettings.model = 'deepseek-ai/DeepSeek-V2.5';
+    }
+    
+    if (parsedSettings.temperature === undefined) {
+      parsedSettings.temperature = 0.5; // 设置为平衡值
     }
     
     return parsedSettings;
