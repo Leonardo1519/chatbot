@@ -10,30 +10,6 @@ const { Text, Paragraph } = Typography;
 
 // 使用memo优化MarkdownContent组件，只有当content变化时才重新渲染
 const MarkdownContent = memo(({ content }) => {
-  // 使用useRef跟踪内容变化
-  const contentRef = useRef('');
-  const [renderedContent, setRenderedContent] = useState(content);
-  
-  // 使用防抖处理内容更新，避免频繁重渲染Markdown
-  useEffect(() => {
-    if (content === contentRef.current) return;
-    
-    const lengthDiff = Math.abs(content.length - contentRef.current.length);
-    const hasSubstantialChange = lengthDiff > 100;
-    
-    // 只有当内容变化足够大时，才立即更新
-    if (hasSubstantialChange) {
-      contentRef.current = content;
-      setRenderedContent(content);
-    } else {
-      // 对于小的增量更新，使用requestAnimationFrame平滑渲染
-      requestAnimationFrame(() => {
-        contentRef.current = content;
-        setRenderedContent(content);
-      });
-    }
-  }, [content]);
-  
   return (
     <ClientOnly>
       <ReactMarkdown
@@ -101,7 +77,7 @@ const MarkdownContent = memo(({ content }) => {
           ),
         }}
       >
-        {renderedContent}
+        {content}
       </ReactMarkdown>
     </ClientOnly>
   );

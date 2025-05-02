@@ -252,80 +252,65 @@ export default function ChatPage() {
     if (!inputText.trim()) return;
     
     const userMessage = { text: inputText.trim(), isSender: true };
-    const tempAiMessage = { text: '', isSender: false, isLoading: true };
+    const aiMessage = { text: '', isSender: false };
     
     // 清空输入框
     setInputText('');
     
     // 添加用户消息到聊天
-    const newMessages = [...messages, userMessage];
+    const newMessages = [...messages, userMessage, aiMessage];
     setMessages(newMessages);
-    updateCurrentSession(newMessages);
+    updateCurrentSession(newMessages.slice(0, -1)); // 不要立即保存空的AI消息
     
-    // 添加临时AI消息（显示加载中）
+    // 设置正在输入状态
     setIsTyping(true);
-    setMessages([...newMessages, tempAiMessage]);
     
     try {
       // 用户可能在设置中自定义了API密钥和模型，从设置中获取
       const { apiKey, model, temperature } = settings;
       
-      // 使用缓冲区收集流式响应，减少闪烁
-      let responseBuffer = '';
-      let bufferTimer = null;
-      const BUFFER_UPDATE_INTERVAL = 300; // 增加到300毫秒更新一次UI，减少渲染频率
-      let lastContent = '';  // 存储上次更新的内容，避免不必要的状态更新
+      // 流式响应的当前文本
+      let currentText = '';
       
       // 调用流式API
       await streamMessage(
         apiKey,
-        newMessages,
+        newMessages.slice(0, -1), // 只发送用户消息，不包括空的AI消息
         (chunk) => {
-          // 将新内容添加到缓冲区
-          responseBuffer += chunk;
+          // 直接累加文本并立即更新
+          currentText += chunk;
           
-          // 如果内容与上次相同，不更新UI
-          if (responseBuffer === lastContent) return;
-          
-          // 直接更新消息，不使用防抖或缓冲，实现逐字输出效果
+          // 立即更新消息，确保实时显示
           setMessages(prev => {
+            // 创建消息数组的副本
             const updated = [...prev];
-            // 更新最后一条消息（AI的响应）
-            if (updated.length > 0) {
-              const lastMsg = updated[updated.length - 1];
-              if (!lastMsg.isSender) {
-                lastMsg.text = responseBuffer;
-                lastContent = responseBuffer;
-                lastMsg.isLoading = false;
-              }
+            // 找到最后一条AI消息并更新其文本
+            const lastAiMsgIndex = updated.length - 1;
+            if (lastAiMsgIndex >= 0 && !updated[lastAiMsgIndex].isSender) {
+              updated[lastAiMsgIndex] = {
+                ...updated[lastAiMsgIndex],
+                text: currentText
+              };
             }
             return updated;
           });
           
-          // 使用requestAnimationFrame确保滚动发生在渲染之后
-          requestAnimationFrame(() => {
-            if (chatMessagesRef.current) {
-              chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
-            }
-          });
-        },
-        (fullResponse) => {
-          // 完成
-          setIsTyping(false);
-          
-          // 确保最终响应与缓冲区内容一致
-          if (fullResponse !== lastContent) {
-            // 更新聊天历史
-            const completeMessages = [...newMessages, { text: fullResponse, isSender: false }];
-            setMessages(completeMessages);
-            updateCurrentSession(completeMessages);
-          } else {
-            // 已经是最新内容，只需更新会话历史
-            updateCurrentSession([...newMessages, { text: lastContent, isSender: false }]);
+          // 滚动到底部，确保看到最新内容
+          if (chatMessagesRef.current) {
+            chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
           }
         },
+        (fullResponse) => {
+          // 完成响应
+          setIsTyping(false);
+          
+          // 确保最终文本是完整的
+          const finalMessages = [...messages, userMessage, { text: fullResponse, isSender: false }];
+          setMessages(finalMessages);
+          updateCurrentSession(finalMessages);
+        },
         (error) => {
-          // 出错
+          // 处理错误
           console.error('API调用出错:', error);
           const { message, shouldOpenSettings } = getFriendlyErrorMessage(error);
           setError(message);
@@ -336,7 +321,12 @@ export default function ChatPage() {
           }
           
           setIsTyping(false);
-          const errorMessages = [...newMessages, { ...tempAiMessage, text: '抱歉，我遇到了一些问题。' + message }];
+          
+          // 更新为错误消息
+          const errorMessages = [...messages, userMessage, { 
+            text: '抱歉，我遇到了一些问题。' + message, 
+            isSender: false 
+          }];
           setMessages(errorMessages);
           updateCurrentSession(errorMessages);
         },
@@ -353,7 +343,12 @@ export default function ChatPage() {
       }
       
       setIsTyping(false);
-      const errorMessages = [...newMessages, { ...tempAiMessage, text: '抱歉，我遇到了一些问题。' + message }];
+      
+      // 更新为错误消息
+      const errorMessages = [...messages, userMessage, { 
+        text: '抱歉，我遇到了一些问题。' + message, 
+        isSender: false 
+      }];
       setMessages(errorMessages);
       updateCurrentSession(errorMessages);
     }

@@ -50,19 +50,41 @@
 .messageContent {
   font-size: 14px;
   line-height: 1.5;
-  transition: all 0.3s ease-in-out;
+  transition: background-color 0.3s ease-in-out;
   border-radius: 8px;
   padding: 12px;
-  /* 增加GPU硬件加速，减少闪烁 */
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  perspective: 1000px;
-  will-change: transform, opacity;
-  /* 防止文本内容变化时元素尺寸变化导致的重排和闪烁 */
-  min-height: 20px;
+  /* 固定最小尺寸以减少布局变化 */
+  min-height: 24px;
   overflow-wrap: break-word;
   word-wrap: break-word;
   word-break: break-word;
+  
+  /* 优化渲染 - 兼容Safari */
+  /* Safari不支持content-visibility，为Safari提供降级方案 */
+  -webkit-transform: translateZ(0);
+  transform: translateZ(0);
+  contain: content;
+  /* 有些浏览器不支持content-visibility */
+  content-visibility: auto;
+  /* Safari替代方案 */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* 优化ReactMarkdown渲染 */
+.messageContent p,
+.messageContent h1,
+.messageContent h2,
+.messageContent h3,
+.messageContent h4,
+.messageContent h5,
+.messageContent h6,
+.messageContent ul,
+.messageContent ol,
+.messageContent li,
+.messageContent pre,
+.messageContent blockquote {
+  /* 这些元素的变化不会影响其他元素布局 */
+  contain: content;
 }
 
 /* 用户消息内容 - 背景色由JS动态设置 */
@@ -100,7 +122,7 @@
 /* 段落样式 */
 .paragraph {
   margin: 0.5em 0;
-  transition: opacity 0.2s ease;
+  white-space: pre-wrap;
 }
 
 /* 标题样式 */
@@ -204,21 +226,21 @@
 
 /* 稳定内容样式，减少重绘 */
 .stableContent {
-  /* 启用硬件加速以减少页面闪烁 */
+  /* 更简单的渲染优化方案 */
   transform: translateZ(0);
-  backface-visibility: hidden;
-  animation: fadeIn 0.2s ease-in-out;
-  will-change: transform, opacity;
-  /* 提高文本渲染性能 */
+  -webkit-transform: translateZ(0);
+  
+  /* 移除动画效果 */
+  animation: none;
+  transition: none;
+  
+  /* 优化文本渲染 */
   text-rendering: optimizeSpeed;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* 添加文本内容显示策略，使逐字输出更平滑 */
+/* 移除可能导致闪烁的动画效果 */
 .stableContent > div {
   animation: none !important;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0.8; }
-  to { opacity: 1; }
+  transition: none !important;
 } 
