@@ -1,7 +1,7 @@
 import { Card, Avatar, Typography } from 'antd';
 import { UserOutlined, RobotOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
-import { useEffect, useState, memo, useMemo } from 'react';
+import { useEffect, useState, memo, useMemo, useRef } from 'react';
 import styles from './ChatMessage.module.css';
 import { loadUserAvatar, getTheme, getThemeColor } from '../utils/storage';
 import ClientOnly from './ClientOnly';
@@ -84,11 +84,15 @@ const MarkdownContent = memo(({ content }) => (
 // 添加displayName以方便调试
 MarkdownContent.displayName = 'MarkdownContent';
 
-export default function ChatMessage({ message, isTyping }) {
+// 使用memo优化整个ChatMessage组件
+const ChatMessage = memo(({ message, isTyping }) => {
   const [userAvatar, setUserAvatar] = useState(null);
   const [expertContent, setExpertContent] = useState('');
   const [professorContent, setProfessorContent] = useState('');
   const [currentTheme, setCurrentTheme] = useState('');
+  const [contentStable, setContentStable] = useState(false);
+  const contentRef = useRef('');
+  const prevContentLengthRef = useRef(0);
   
   // 加载用户头像和主题
   useEffect(() => {
@@ -163,6 +167,8 @@ export default function ChatMessage({ message, isTyping }) {
       receiverBubble: {
         backgroundColor: lightThemeColor,
         border: `1px solid ${borderThemeColor}`,
+        transition: 'background-color 0.3s ease',
+        willChange: 'contents', // 提示浏览器这个元素内容会改变
       },
       // AI专家文本样式
       receiverText: {
@@ -172,6 +178,8 @@ export default function ChatMessage({ message, isTyping }) {
       professorBubble: {
         backgroundColor: professorThemeColor,
         border: `1px solid ${borderThemeColor}`,
+        transition: 'background-color 0.3s ease',
+        willChange: 'contents', // 提示浏览器这个元素内容会改变
       },
       // 教授文本样式
       professorText: {
@@ -184,19 +192,40 @@ export default function ChatMessage({ message, isTyping }) {
     };
   }, [currentTheme]);
   
-  // 当消息内容变化时，处理分割IT专家和教授的回复
+  // 优化内容稳定性
   useEffect(() => {
     if (!message.isSender && message.text) {
-      const parts = message.text.split('【计算机教授点评】');
-      if (parts.length > 1) {
-        // 删除IT专家标签
-        const expertPart = parts[0].replace('【IT专家】', '').trim();
-        setExpertContent(expertPart);
-        setProfessorContent(parts[1].trim());
+      // 如果内容长度变化较大，标记为不稳定以减少闪烁
+      const lengthDiff = Math.abs(message.text.length - prevContentLengthRef.current);
+      
+      // 仅当内容大量变化时才重新设置不稳定状态
+      if (lengthDiff > 50) {
+        setContentStable(false);
+        prevContentLengthRef.current = message.text.length;
+        
+        // 使用requestAnimationFrame确保DOM稳定
+        requestAnimationFrame(() => {
+          setContentStable(true);
+        });
       } else {
-        // 如果没有找到分隔符，就把全部内容都设为IT专家的
-        setExpertContent(message.text.replace('【IT专家】', '').trim());
-        setProfessorContent('');
+        prevContentLengthRef.current = message.text.length;
+      }
+      
+      // 使用防抖分析内容分割
+      if (contentRef.current !== message.text) {
+        contentRef.current = message.text;
+        
+        const parts = message.text.split('【计算机教授点评】');
+        if (parts.length > 1) {
+          // 删除IT专家标签
+          const expertPart = parts[0].replace('【IT专家】', '').trim();
+          setExpertContent(expertPart);
+          setProfessorContent(parts[1].trim());
+        } else {
+          // 如果没有找到分隔符，就把全部内容都设为IT专家的
+          setExpertContent(message.text.replace('【IT专家】', '').trim());
+          setProfessorContent('');
+        }
       }
     }
   }, [message.text, message.isSender]);
@@ -232,11 +261,13 @@ export default function ChatMessage({ message, isTyping }) {
   };
 
   // 给MarkdownContent组件添加样式
-  const MarkdownContentWithStyle = ({ content, textStyle }) => (
-    <div style={textStyle}>
+  const MarkdownContentWithStyle = memo(({ content, textStyle }) => (
+    <div style={textStyle} className={contentStable ? styles.stableContent : ''}>
       <MarkdownContent content={content} />
     </div>
-  );
+  ));
+  
+  MarkdownContentWithStyle.displayName = 'MarkdownContentWithStyle';
 
   // 如果是用户消息，直接显示
   if (message.isSender) {
@@ -318,4 +349,8 @@ export default function ChatMessage({ message, isTyping }) {
       )}
     </>
   );
-} 
+});
+
+ChatMessage.displayName = 'ChatMessage';
+
+export default ChatMessage; 

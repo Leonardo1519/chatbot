@@ -273,7 +273,8 @@ export default function ChatPage() {
       // 使用缓冲区收集流式响应，减少闪烁
       let responseBuffer = '';
       let bufferTimer = null;
-      const BUFFER_UPDATE_INTERVAL = 100; // 100毫秒更新一次UI
+      const BUFFER_UPDATE_INTERVAL = 300; // 增加到300毫秒更新一次UI，减少渲染频率
+      let lastContent = '';  // 存储上次更新的内容，避免不必要的状态更新
       
       // 调用流式API
       await streamMessage(
@@ -283,40 +284,55 @@ export default function ChatPage() {
           // 将新内容添加到缓冲区
           responseBuffer += chunk;
           
-          // 如果定时器不存在，创建一个新的定时器来更新UI
-          if (!bufferTimer) {
-            bufferTimer = setTimeout(() => {
-              // 更新消息内容
-              setMessages(prev => {
-                const updated = [...prev];
-                // 更新最后一条消息（AI的响应）
-                if (updated.length > 0) {
-                  const lastMsg = updated[updated.length - 1];
-                  if (!lastMsg.isSender) {
+          // 如果内容与上次相同，不更新UI
+          if (responseBuffer === lastContent) return;
+          
+          // 使用防抖方式更新UI，防止频繁渲染
+          if (bufferTimer) {
+            clearTimeout(bufferTimer);
+          }
+          
+          bufferTimer = setTimeout(() => {
+            // 更新消息内容
+            setMessages(prev => {
+              const updated = [...prev];
+              // 更新最后一条消息（AI的响应）
+              if (updated.length > 0) {
+                const lastMsg = updated[updated.length - 1];
+                if (!lastMsg.isSender) {
+                  // 仅当内容有变化时才更新
+                  if (lastMsg.text !== responseBuffer) {
                     lastMsg.text = responseBuffer;
+                    lastContent = responseBuffer;
                     lastMsg.isLoading = false;
                   }
                 }
-                return updated;
-              });
-              
-              // 滚动到底部
+              }
+              return updated;
+            });
+            
+            // 使用requestAnimationFrame确保滚动发生在渲染之后
+            requestAnimationFrame(() => {
               if (chatMessagesRef.current) {
                 chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
               }
-              
-              // 清除定时器，允许下一次更新
-              bufferTimer = null;
-            }, BUFFER_UPDATE_INTERVAL);
-          }
+            });
+            
+            // 清除定时器
+            bufferTimer = null;
+          }, BUFFER_UPDATE_INTERVAL);
         },
         (fullResponse) => {
           // 完成
           setIsTyping(false);
-          // 更新聊天历史
-          const completeMessages = [...newMessages, { text: fullResponse, isSender: false }];
-          setMessages(completeMessages);
-          updateCurrentSession(completeMessages);
+          
+          // 确保最终响应与缓冲区内容一致
+          if (fullResponse !== lastContent) {
+            // 更新聊天历史
+            const completeMessages = [...newMessages, { text: fullResponse, isSender: false }];
+            setMessages(completeMessages);
+            updateCurrentSession(completeMessages);
+          }
         },
         (error) => {
           // 出错
