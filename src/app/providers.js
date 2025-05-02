@@ -27,16 +27,6 @@ export function Providers({ children }) {
     const root = document.documentElement;
     root.style.setProperty('--primary-color', themeColor);
     
-    // 将十六进制颜色转换为RGB格式并设置为CSS变量
-    const hexToRgb = (hex) => {
-      const r = parseInt(hex.slice(1, 3), 16);
-      const g = parseInt(hex.slice(3, 5), 16);
-      const b = parseInt(hex.slice(5, 7), 16);
-      return `${r}, ${g}, ${b}`;
-    };
-    // 设置RGB格式的CSS变量，用于透明度设置
-    root.style.setProperty('--primary-rgb', hexToRgb(themeColor));
-    
     // 实时监听CSS变量变化的函数
     const observeCSSVariableChanges = () => {
       if (!window.MutationObserver) return null;
@@ -48,9 +38,6 @@ export function Providers({ children }) {
             const newColor = getComputedStyle(root).getPropertyValue('--primary-color').trim();
             if (newColor && newColor !== primaryColor) {
               setPrimaryColor(newColor);
-              
-              // 主动触发主题变化事件，确保所有组件都能及时更新
-              window.dispatchEvent(new CustomEvent('themeChange'));
             }
           }
         }
@@ -77,11 +64,6 @@ export function Providers({ children }) {
       
       // 更新CSS变量
       root.style.setProperty('--primary-color', newColor);
-      // 更新RGB格式的变量
-      root.style.setProperty('--primary-rgb', hexToRgb(newColor));
-      
-      // 主动触发主题变化事件，确保所有组件都能及时更新
-      window.dispatchEvent(new CustomEvent('themeChange'));
     };
     
     // 创建自定义事件监听器
@@ -89,11 +71,6 @@ export function Providers({ children }) {
     
     // 创建一个自定义事件，当在同一标签页内修改主题时触发
     window.addEventListener('themeChange', handleStorageChange);
-    
-    // 初始化后立即触发一次主题变化事件，确保所有组件都使用正确的颜色
-    setTimeout(() => {
-      window.dispatchEvent(new CustomEvent('themeChange'));
-    }, 100);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
@@ -126,15 +103,6 @@ export function Providers({ children }) {
                 colorPrimaryHover: undefined, 
                 activeBorderColor: '#d9d9d9',
                 hoverBorderColor: '#d9d9d9',
-              },
-              Slider: {
-                // 添加对Slider组件的主题处理
-                handleColor: primaryColor,
-                handleActiveColor: primaryColor,
-                dotActiveBorderColor: primaryColor,
-                dotActiveBgColor: primaryColor,
-                trackBgColor: primaryColor,
-                railBgColor: `${primaryColor}30`,
               },
             }
           }}

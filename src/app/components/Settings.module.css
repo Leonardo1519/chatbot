@@ -237,22 +237,52 @@
 
 /* 自定义滑块圆点的样式 */
 .settingsForm :global(.ant-slider-dot) {
-  transition: border-color 0.3s ease;
+  transition: all 0.3s ease;
+  border: none !important;
+  border-color: transparent !important;
+  width: 10px !important;
+  height: 10px !important;
+  top: -4px !important;
+  opacity: 0.5 !important;
+}
+
+/* 自定义激活状态的滑块圆点 */
+.settingsForm :global(.ant-slider-dot-active) {
+  border: none !important;
+  border-color: transparent !important;
+  opacity: 1 !important;
+}
+
+/* 确保鼠标悬停时也不显示边框 */
+.settingsForm :global(.ant-slider:hover .ant-slider-dot) {
+  border: none !important;
+  border-color: transparent !important;
 }
 
 /* 自定义滑块轨道的样式 */
 .settingsForm :global(.ant-slider-rail) {
   transition: background-color 0.3s ease;
+  height: 4px !important;
 }
 
 /* 自定义已选择的轨道部分的样式 */
 .settingsForm :global(.ant-slider-track) {
   transition: background-color 0.3s ease;
+  height: 4px !important;
 }
 
 /* 自定义滑块手柄的样式 */
 .settingsForm :global(.ant-slider-handle) {
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+  transition: all 0.3s ease;
+  border: none !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin-top: -6px !important;
+  box-shadow: 0 0 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+.settingsForm :global(.ant-slider-handle:focus) {
+  box-shadow: 0 0 0 5px rgba(24, 144, 255, 0.12) !important;
 }
 
 /* 自定义标记文本样式 */
@@ -369,4 +399,37 @@
 .settingsForm :global(.ant-divider-with-text::before),
 .settingsForm :global(.ant-divider-with-text::after) {
   border-top-color: #e8e8e8;
+}
+
+/* 确保所有可能的状态下圆点都没有描边 */
+.settingsForm :global(.ant-slider-dot),
+.settingsForm :global(.ant-slider-dot:hover),
+.settingsForm :global(.ant-slider-dot-active),
+.settingsForm :global(.ant-slider-dot-active:hover),
+.settingsForm :global(.ant-slider:hover .ant-slider-dot),
+.settingsForm :global(.ant-slider:hover .ant-slider-dot-active),
+.settingsForm :global(.ant-slider-with-marks .ant-slider-dot),
+.settingsForm :global(.ant-slider-with-marks .ant-slider-dot-active) {
+  border: none !important;
+  border-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 禁用掉Ant Design的默认样式 */
+.settingsForm :global(.ant-slider-with-marks .ant-slider-mark) {
+  margin-top: 12px !important;
+}
+
+/* 强制使用自定义样式，覆盖Ant Design的其他状态 */
+.settingsForm :global(.ant-slider) {
+  padding: 8px 0 !important;
+}
+
+.settingsForm :global(.ant-slider-handle),
+.settingsForm :global(.ant-slider-handle:hover),
+.settingsForm :global(.ant-slider-handle:focus),
+.settingsForm :global(.ant-slider-handle-click-focused),
+.settingsForm :global(.ant-slider:hover .ant-slider-handle:not(.ant-tooltip-open)) {
+  border: none !important;
+  border-color: transparent !important;
 } 

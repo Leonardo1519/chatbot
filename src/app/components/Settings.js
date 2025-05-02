@@ -49,36 +49,6 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       const initialColor = getCssVariableColor();
       setPreviewThemeColor(initialColor);
       setSavedThemeColor(initialColor); // 初始设置保存的颜色
-      
-      // 监听主题变化事件，更新Slider组件样式
-      const handleThemeChangeEvent = () => {
-        const updatedColor = getCssVariableColor();
-        setSavedThemeColor(updatedColor);
-        
-        // 动态应用样式到Slider组件
-        const styleElement = document.createElement('style');
-        styleElement.textContent = `
-          .ant-slider-handle {
-            border-color: ${updatedColor} !important;
-            background-color: ${updatedColor} !important;
-            box-shadow: ${getSafeBoxShadow(updatedColor)} !important;
-          }
-        `;
-        document.head.appendChild(styleElement);
-        
-        // 短暂延迟后移除样式，避免影响其他组件
-        setTimeout(() => {
-          if (styleElement.parentNode) {
-            styleElement.parentNode.removeChild(styleElement);
-          }
-        }, 100);
-      };
-      
-      window.addEventListener('themeChange', handleThemeChangeEvent);
-      
-      return () => {
-        window.removeEventListener('themeChange', handleThemeChangeEvent);
-      };
     }
   }, []);
 
@@ -184,19 +154,26 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           --primary-color: ${themeObj.primary} !important;
         }
         .ant-slider-dot {
-          border-color: ${themeObj.primary} !important;
-          transition: border-color 0.3s ease;
+          border: none !important;
+          border-color: transparent !important;
+          background-color: ${themeObj.primary} !important;
+          opacity: 0.5 !important;
+          width: 10px !important;
+          height: 10px !important;
         }
         .ant-slider-dot-active {
-          border-color: ${themeObj.primary} !important;
+          border: none !important;
+          border-color: transparent !important;
           background-color: ${themeObj.primary} !important;
+          opacity: 1 !important;
         }
         .ant-slider-track {
           background-color: ${themeObj.primary} !important;
         }
         .ant-slider-handle {
-          border-color: ${themeObj.primary} !important;
+          border: none !important;
           background-color: ${themeObj.primary} !important;
+          box-shadow: 0 0 4px rgba(0, 0, 0, 0.2) !important;
         }
       `;
       document.head.appendChild(stylesheet);
@@ -310,19 +287,29 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       const styleElement = document.createElement('style');
       styleElement.textContent = `
         .ant-slider-dot {
-          border-color: ${themeObj.primary} !important;
+          border: none !important;
+          border-color: transparent !important;
+          background-color: ${themeObj.primary} !important;
+          opacity: 0.5 !important;
+          width: 10px !important;
+          height: 10px !important;
         }
         .ant-slider-dot-active {
-          border-color: ${themeObj.primary} !important;
+          border: none !important;
+          border-color: transparent !important;
           background-color: ${themeObj.primary} !important;
+          opacity: 1 !important;
         }
         .ant-slider-mark-text {
           color: ${themeObj.primary} !important;
         }
-        .ant-slider-handle {
-          border-color: ${themeObj.primary} !important;
+        .ant-slider-track {
           background-color: ${themeObj.primary} !important;
-          box-shadow: 0 0 0 2px rgba(${parseInt(themeObj.primary.slice(1, 3), 16)}, ${parseInt(themeObj.primary.slice(3, 5), 16)}, ${parseInt(themeObj.primary.slice(5, 7), 16)}, 0.2) !important;
+        }
+        .ant-slider-handle {
+          border: none !important;
+          background-color: ${themeObj.primary} !important;
+          box-shadow: 0 0 4px rgba(0, 0, 0, 0.2) !important;
         }
       `;
       document.head.appendChild(styleElement);
@@ -354,14 +341,8 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       }
 
       // 将十六进制颜色转换为RGB
-      const hexToRgb = (hex) => {
-        const r = parseInt(hex.slice(1, 3), 16);
-        const g = parseInt(hex.slice(3, 5), 16);
-        const b = parseInt(hex.slice(5, 7), 16);
-        return `${r}, ${g}, ${b}`;
-      };
-      
-      return `0 0 0 2px rgba(${hexToRgb(color)}, 0.2)`;
+      const hexToRgb = color.replace('#', '').match(/.{2}/g).map(hex => parseInt(hex, 16)).join(', ');
+      return `0 0 0 2px rgba(${hexToRgb}, 0.2)`;
     } catch (e) {
       return `0 0 0 2px rgba(24, 144, 255, 0.2)`; // 出错时返回默认值
     }
@@ -520,13 +501,20 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           }}
           railStyle={{ backgroundColor: `${savedThemeColor || '#1890ff'}30` }}
           dotStyle={{ 
-            borderColor: savedThemeColor || '#1890ff',
-            backgroundColor: 'white',
-            borderWidth: 2
+            borderColor: 'transparent',
+            backgroundColor: savedThemeColor || '#1890ff',
+            borderWidth: 0,
+            width: 10,
+            height: 10,
+            opacity: 0.5
           }}
           activeDotStyle={{
-            borderColor: savedThemeColor || '#1890ff',
-            backgroundColor: savedThemeColor || '#1890ff'
+            borderColor: 'transparent',
+            backgroundColor: savedThemeColor || '#1890ff',
+            borderWidth: 0,
+            width: 10,
+            height: 10,
+            opacity: 1
           }}
         />
       </Form.Item>
