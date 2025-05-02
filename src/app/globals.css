@@ -58,3 +58,28 @@ a {
   border-color: #d9d9d9 !important;
   box-shadow: none !important;
 }
+
+/* 滑块样式的平滑过渡效果 */
+.ant-slider-handle,
+.ant-slider-track,
+.ant-slider-dot,
+.ant-slider-mark-text {
+  transition: all 0.3s ease !important;
+}
+
+.ant-slider-handle {
+  border-color: var(--primary-color) !important;
+  background-color: var(--primary-color) !important;
+}
+
+.ant-slider-handle:focus {
+  box-shadow: 0 0 0 5px rgba(var(--primary-rgb), 0.12) !important;
+}
+
+.ant-slider-track {
+  background-color: var(--primary-color) !important;
+}
+
+.ant-slider-dot-active {
+  border-color: var(--primary-color) !important;
+}
