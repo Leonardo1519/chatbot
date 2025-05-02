@@ -73,6 +73,10 @@
   
   /* 创建层叠上下文，确保渲染隔离 */
   isolation: isolate;
+  
+  /* 强制创建新的渲染层，减少重绘，解决闪烁 */
+  transform: translate3d(0, 0, 0);
+  z-index: 1;
 }
 
 /* 防止列表和段落元素导致的布局变动 */
@@ -260,13 +264,22 @@
   
   /* 阻止子元素导致的重排 */
   contain: content;
+  
+  /* 强制创建新的渲染层，解决闪烁问题 */
+  transform: translate3d(0, 0, 0);
+  z-index: 1;
 }
 
 /* 非稳定状态下的内容 */
 .unstableContent {
-  opacity: 0.95;
+  opacity: 0.98;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   transition: none;
   will-change: contents;
+  
+  /* 减少闪烁的其他属性 */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  transform: translate3d(0, 0, 0);
 } 

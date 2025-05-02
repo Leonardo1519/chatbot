@@ -10,75 +10,91 @@ const { Text, Paragraph } = Typography;
 
 // 使用memo优化MarkdownContent组件，只有当content变化时才重新渲染
 const MarkdownContent = memo(({ content }) => {
+  const markdownRef = useRef(null);
+  
+  // 渐进式渲染，减少视觉闪烁
+  useEffect(() => {
+    if (markdownRef.current) {
+      markdownRef.current.style.opacity = '0';
+      requestAnimationFrame(() => {
+        if (markdownRef.current) {
+          markdownRef.current.style.opacity = '1';
+        }
+      });
+    }
+  }, [content]);
+  
   return (
     <ClientOnly>
-      <ReactMarkdown
-        components={{
-          p: ({ children }) => (
-            <Paragraph className={styles.paragraph}>
-              {children}
-            </Paragraph>
-          ),
-          h1: ({ children }) => (
-            <Typography.Title level={5} className={styles.heading}>
-              {children}
-            </Typography.Title>
-          ),
-          h2: ({ children }) => (
-            <Typography.Title level={5} className={styles.heading}>
-              {children}
-            </Typography.Title>
-          ),
-          h3: ({ children }) => (
-            <Typography.Title level={5} className={styles.heading}>
-              {children}
-            </Typography.Title>
-          ),
-          h4: ({ children }) => (
-            <Typography.Title level={5} className={styles.heading}>
-              {children}
-            </Typography.Title>
-          ),
-          h5: ({ children }) => (
-            <Typography.Title level={5} className={styles.heading}>
-              {children}
-            </Typography.Title>
-          ),
-          h6: ({ children }) => (
-            <Typography.Title level={5} className={styles.heading}>
-              {children}
-            </Typography.Title>
-          ),
-          ul: ({ children }) => (
-            <ul className={styles.list}>{children}</ul>
-          ),
-          ol: ({ children }) => (
-            <ol className={styles.list}>{children}</ol>
-          ),
-          li: ({ children }) => (
-            <li className={styles.listItem}>
-              {children}
-            </li>
-          ),
-          code: ({ children }) => (
-            <Text code className={styles.code}>
-              {children}
-            </Text>
-          ),
-          pre: ({ children }) => (
-            <pre className={styles.pre}>
-              {children}
-            </pre>
-          ),
-          blockquote: ({ children }) => (
-            <blockquote className={styles.blockquote}>
-              {children}
-            </blockquote>
-          ),
-        }}
-      >
-        {content}
-      </ReactMarkdown>
+      <div ref={markdownRef} style={{ transition: 'opacity 0.05s ease-in-out' }}>
+        <ReactMarkdown
+          components={{
+            p: ({ children }) => (
+              <Paragraph className={styles.paragraph}>
+                {children}
+              </Paragraph>
+            ),
+            h1: ({ children }) => (
+              <Typography.Title level={5} className={styles.heading}>
+                {children}
+              </Typography.Title>
+            ),
+            h2: ({ children }) => (
+              <Typography.Title level={5} className={styles.heading}>
+                {children}
+              </Typography.Title>
+            ),
+            h3: ({ children }) => (
+              <Typography.Title level={5} className={styles.heading}>
+                {children}
+              </Typography.Title>
+            ),
+            h4: ({ children }) => (
+              <Typography.Title level={5} className={styles.heading}>
+                {children}
+              </Typography.Title>
+            ),
+            h5: ({ children }) => (
+              <Typography.Title level={5} className={styles.heading}>
+                {children}
+              </Typography.Title>
+            ),
+            h6: ({ children }) => (
+              <Typography.Title level={5} className={styles.heading}>
+                {children}
+              </Typography.Title>
+            ),
+            ul: ({ children }) => (
+              <ul className={styles.list}>{children}</ul>
+            ),
+            ol: ({ children }) => (
+              <ol className={styles.list}>{children}</ol>
+            ),
+            li: ({ children }) => (
+              <li className={styles.listItem}>
+                {children}
+              </li>
+            ),
+            code: ({ children }) => (
+              <Text code className={styles.code}>
+                {children}
+              </Text>
+            ),
+            pre: ({ children }) => (
+              <pre className={styles.pre}>
+                {children}
+              </pre>
+            ),
+            blockquote: ({ children }) => (
+              <blockquote className={styles.blockquote}>
+                {children}
+              </blockquote>
+            ),
+          }}
+        >
+          {content}
+        </ReactMarkdown>
+      </div>
     </ClientOnly>
   );
 });
@@ -219,15 +235,21 @@ const ChatMessage = memo(({ message, isTyping }) => {
           // 更新引用内容
           contentRef.current = newText;
           
+          // 取消之前计划的所有状态更新
+          if (window.rafId) {
+            cancelAnimationFrame(window.rafId);
+          }
+          
           // 只有当内容大幅变化时才触发稳定性处理
           const lengthDiff = Math.abs(newText.length - prevContentLengthRef.current);
           if (lengthDiff > 50) {
-            // 使用 requestAnimationFrame 包裹状态更新，确保渲染在同一帧中完成
-            requestAnimationFrame(() => {
+            // 使用单个requestAnimationFrame
+            window.rafId = requestAnimationFrame(() => {
+              // 设置为不稳定状态的时间很短，几乎察觉不到
               setContentStable(false);
               
-              // 使用 requestAnimationFrame 嵌套确保下一帧处理稳定性
-              requestAnimationFrame(() => {
+              // 立即在下一帧恢复稳定
+              window.rafId = requestAnimationFrame(() => {
                 prevContentLengthRef.current = newText.length;
                 setContentStable(true);
               });
@@ -238,13 +260,16 @@ const ChatMessage = memo(({ message, isTyping }) => {
         }
       };
       
-      // 使用 requestIdleCallback 在浏览器空闲时处理内容，降低渲染压力
-      if (window.requestIdleCallback) {
-        window.requestIdleCallback(() => handleContent(), { timeout: 100 });
-      } else {
-        // 降级方案
-        setTimeout(handleContent, 0);
-      }
+      // 使用防抖处理，减少处理频率
+      const debounceTime = 80; // 80ms防抖
+      const timeoutId = setTimeout(handleContent, debounceTime);
+      
+      return () => {
+        clearTimeout(timeoutId);
+        if (window.rafId) {
+          cancelAnimationFrame(window.rafId);
+        }
+      };
     }
   }, [message.text, message.isSender]);
   
@@ -279,20 +304,35 @@ const ChatMessage = memo(({ message, isTyping }) => {
   };
 
   // 给MarkdownContent组件添加样式
-  const MarkdownContentWithStyle = memo(({ content, textStyle }) => (
-    <div 
-      style={{
-        ...textStyle,
-        // 增加动画帧缓存，减少内容更新引起的重新渲染
-        transform: 'translateZ(0)',
-        // 添加平滑过渡效果
-        transition: 'opacity 0.05s ease-in-out'
-      }} 
-      className={`${contentStable ? styles.stableContent : styles.unstableContent}`}
-    >
-      <MarkdownContent content={content} />
-    </div>
-  ));
+  const MarkdownContentWithStyle = memo(({ content, textStyle }) => {
+    // 计算字符数估算高度，减少布局变化导致的闪烁
+    const estimatedHeight = useMemo(() => {
+      if (!content) return 'auto';
+      // 粗略估算：每40个字符一行，每行20px高度
+      const charCount = content.length;
+      const lines = charCount / 40;
+      const baseHeight = Math.max(24, lines * 20);
+      
+      // 添加额外空间以适应Markdown格式
+      const extraSpace = content.includes('```') ? 100 : 0;
+      return `${baseHeight + extraSpace}px`;
+    }, [content]);
+    
+    return (
+      <div 
+        style={{
+          ...textStyle,
+          transform: 'translateZ(0)',
+          transition: 'opacity 0.05s ease-in-out',
+          position: 'relative',
+          minHeight: estimatedHeight,
+        }} 
+        className={`${contentStable ? styles.stableContent : styles.unstableContent}`}
+      >
+        <MarkdownContent content={content} />
+      </div>
+    );
+  });
   
   MarkdownContentWithStyle.displayName = 'MarkdownContentWithStyle';
 

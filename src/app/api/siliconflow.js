@@ -155,11 +155,28 @@ export async function streamMessage(apiKey, messages, onChunk, onComplete, onErr
     });
 
     let fullResponse = '';
+    let buffer = '';
+    let lastCallTime = Date.now();
+    const bufferThreshold = 15; // 每累积15个字符才触发一次
+    const timeThreshold = 100; // 至少间隔100ms触发一次
     
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || '';
       fullResponse += content;
-      onChunk(content);
+      buffer += content;
+      
+      const now = Date.now();
+      // 只有累积了足够的字符或者过了足够的时间才触发回调
+      if (buffer.length >= bufferThreshold || now - lastCallTime >= timeThreshold) {
+        onChunk(buffer);
+        buffer = '';
+        lastCallTime = now;
+      }
+    }
+    
+    // 处理可能剩余的缓冲区内容
+    if (buffer.length > 0) {
+      onChunk(buffer);
     }
     
     onComplete(fullResponse);

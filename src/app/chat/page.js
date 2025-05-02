@@ -274,29 +274,47 @@ export default function ChatPage() {
       // 缓冲区和上次更新时间戳，用于节流更新
       let buffer = '';
       let lastUpdateTime = Date.now();
-      // 用于防止过于频繁更新的节流间隔（毫秒）
-      const throttleInterval = 120;
+      // 优化更新间隔 - 增加到150ms以减轻渲染负担
+      const throttleInterval = 150;
+      // 批量更新大小 - 增加文本缓冲阈值
+      const batchSize = 25;
+      // 用于取消requestAnimationFrame的ID
+      let rafId = null;
       
-      // 更新消息的函数
+      // 更新消息的函数 - 使用requestAnimationFrame优化
       const updateMessageWithText = (text) => {
-        setMessages(prev => {
-          // 创建消息数组的副本
-          const updated = [...prev];
-          // 找到最后一条AI消息并更新其文本
-          const lastAiMsgIndex = updated.length - 1;
-          if (lastAiMsgIndex >= 0 && !updated[lastAiMsgIndex].isSender) {
-            updated[lastAiMsgIndex] = {
-              ...updated[lastAiMsgIndex],
-              text: text
-            };
-          }
-          return updated;
-        });
+        // 取消之前计划的任何更新
+        if (rafId) {
+          cancelAnimationFrame(rafId);
+        }
         
-        // 使用requestAnimationFrame优化滚动
-        requestAnimationFrame(() => {
+        // 使用requestAnimationFrame确保在下一帧渲染
+        rafId = requestAnimationFrame(() => {
+          setMessages(prev => {
+            // 创建消息数组的副本
+            const updated = [...prev];
+            // 找到最后一条AI消息并更新其文本
+            const lastAiMsgIndex = updated.length - 1;
+            if (lastAiMsgIndex >= 0 && !updated[lastAiMsgIndex].isSender) {
+              updated[lastAiMsgIndex] = {
+                ...updated[lastAiMsgIndex],
+                text: text
+              };
+            }
+            return updated;
+          });
+          
+          // 滚动到底部的逻辑
           if (chatMessagesRef.current) {
-            chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+            // 检查是否在底部
+            const isScrolledToBottom = 
+              chatMessagesRef.current.scrollHeight - chatMessagesRef.current.clientHeight <= 
+              chatMessagesRef.current.scrollTop + 50;
+              
+            // 只有当用户在底部时才自动滚动
+            if (isScrolledToBottom) {
+              chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+            }
           }
         });
       };
@@ -313,7 +331,7 @@ export default function ChatPage() {
           const now = Date.now();
           
           // 如果积累了足够的文本或者距离上次更新已经超过节流间隔，则更新界面
-          if (buffer.length > 20 || now - lastUpdateTime > throttleInterval) {
+          if (buffer.length > batchSize || now - lastUpdateTime > throttleInterval) {
             // 更新当前文本并清空缓冲区
             currentText += buffer;
             buffer = '';
@@ -333,11 +351,21 @@ export default function ChatPage() {
           // 确保最终文本是完整的
           const finalMessages = [...messages, userMessage, { text: fullResponse, isSender: false }];
           
-          // 通过requestAnimationFrame保证状态更新不会频繁触发渲染
-          requestAnimationFrame(() => {
+          // 清除任何正在进行的动画帧
+          if (rafId) {
+            cancelAnimationFrame(rafId);
+          }
+          
+          // 使用setTimeout延迟最终更新以避免与流式更新冲突
+          setTimeout(() => {
             setMessages(finalMessages);
             updateCurrentSession(finalMessages);
-          });
+            
+            // 最后一次滚动到底部
+            if (chatMessagesRef.current) {
+              chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+            }
+          }, 100);
         },
         (error) => {
           // 处理错误
