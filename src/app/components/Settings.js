@@ -13,6 +13,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   const [temperature, setTemperature] = useState(0.5);
   const [theme, setTheme] = useState(DEFAULT_THEME);
   const [previewThemeColor, setPreviewThemeColor] = useState(''); // 用于预览的主题颜色
+  const [savedThemeColor, setSavedThemeColor] = useState(''); // 用于已保存的主题颜色，控制按钮和滑块颜色
   const [showApiHelp, setShowApiHelp] = useState(false);
   const [isUsingDefaultKey, setIsUsingDefaultKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -47,6 +48,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       // 初始化颜色
       const initialColor = getCssVariableColor();
       setPreviewThemeColor(initialColor);
+      setSavedThemeColor(initialColor); // 初始设置保存的颜色
     }
   }, []);
 
@@ -80,6 +82,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       const themeObj = AVAILABLE_THEMES.find(t => t.key === savedTheme);
       if (themeObj) {
         setPreviewThemeColor(themeObj.primary);
+        setSavedThemeColor(themeObj.primary); // 设置保存的颜色值
       }
       
       setIsUsingDefaultKey(settings.apiKey === DEFAULT_API_KEY);
@@ -136,6 +139,9 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     // 只在点击保存按钮时应用主题颜色到全局
     if (isClient) {
       const themeObj = AVAILABLE_THEMES.find(t => t.key === values.theme) || AVAILABLE_THEMES[0];
+      
+      // 更新已保存的主题颜色
+      setSavedThemeColor(themeObj.primary);
       
       // 强制应用颜色设置
       const root = document.documentElement;
@@ -292,7 +298,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           <Button 
             icon={uploading ? <LoadingOutlined /> : <UploadOutlined />} 
             className={styles.uploadButton}
-            style={{ borderColor: previewThemeColor, color: previewThemeColor }}
+            style={{ borderColor: savedThemeColor, color: savedThemeColor }}
           >
             {uploading ? '上传中...' : '更改头像'}
           </Button>
@@ -357,8 +363,8 @@ export default function Settings({ visible, onClose, settings, onSave }) {
 
       {isAutoValidating && (
         <div className={styles.validatingIndicator}>
-          <Spin indicator={<LoadingOutlined style={{ fontSize: 16, marginRight: 8, color: previewThemeColor }} />} />
-          <span style={{ color: previewThemeColor }}>正在验证API密钥...</span>
+          <Spin indicator={<LoadingOutlined style={{ fontSize: 16, marginRight: 8, color: savedThemeColor }} />} />
+          <span style={{ color: savedThemeColor }}>正在验证API密钥...</span>
         </div>
       )}
 
@@ -396,8 +402,8 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           }}
           onChange={handleTemperatureChange}
           value={temperature}
-          trackStyle={{ backgroundColor: previewThemeColor }}
-          handleStyle={{ borderColor: previewThemeColor, backgroundColor: previewThemeColor }}
+          trackStyle={{ backgroundColor: savedThemeColor }}
+          handleStyle={{ borderColor: savedThemeColor, backgroundColor: savedThemeColor }}
         />
       </Form.Item>
 
@@ -411,13 +417,13 @@ export default function Settings({ visible, onClose, settings, onSave }) {
             <Button 
               type="primary" 
               htmlType="submit"
-              style={{ backgroundColor: previewThemeColor, borderColor: previewThemeColor }}
+              style={{ backgroundColor: savedThemeColor, borderColor: savedThemeColor }}
             >
               保存
             </Button>
             <Button 
               onClick={handleCancel}
-              style={{ borderColor: previewThemeColor, color: previewThemeColor }}
+              style={{ borderColor: savedThemeColor, color: savedThemeColor }}
             >
               取消
             </Button>
