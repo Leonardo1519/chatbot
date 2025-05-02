@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Form, Input, Select, Slider, Button, Space, Radio, Spin, Alert, Divider, Upload, Avatar, message } from 'antd';
 import { PlusOutlined, CheckCircleOutlined, LoadingOutlined, UploadOutlined, UserOutlined } from '@ant-design/icons';
 import styles from './Settings.module.css';
-import { isClient, DEFAULT_API_KEY, validateApiKey, checkAndUpdateApiKeyStatus, saveUserAvatar, loadUserAvatar, AVAILABLE_THEMES, DEFAULT_THEME, saveSettings, loadSettings } from '../utils/storage';
+import { isClient, DEFAULT_API_KEY, validateApiKey, checkAndUpdateApiKeyStatus, saveUserAvatar, loadUserAvatar, AVAILABLE_THEMES, DEFAULT_THEME, saveSettings, loadSettings, getThemeColor } from '../utils/storage';
 
 const { Option } = Select;
 
@@ -12,6 +12,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   const [model, setModel] = useState('deepseek-ai/DeepSeek-V2.5');
   const [temperature, setTemperature] = useState(0.5);
   const [theme, setTheme] = useState(DEFAULT_THEME);
+  const [currentThemeColor, setCurrentThemeColor] = useState('');
   const [showApiHelp, setShowApiHelp] = useState(false);
   const [isUsingDefaultKey, setIsUsingDefaultKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -29,6 +30,46 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     { id: 'mistralai/Mistral-7B-Instruct-v0.2', name: 'Mistral 7B' },
     { id: 'baichuan-inc/Baichuan3-Turbo', name: 'Baichuan3 Turbo' }
   ];
+
+  // 获取当前主题颜色
+  useEffect(() => {
+    if (isClient) {
+      // 当选择新主题时更新主题颜色
+      const updateThemeColor = () => {
+        const themeObj = AVAILABLE_THEMES.find(t => t.key === theme);
+        if (themeObj) {
+          setCurrentThemeColor(themeObj.primary);
+        }
+      };
+      
+      // 从CSS变量获取当前主题颜色
+      const getCssVariableColor = () => {
+        if (typeof document !== 'undefined') {
+          const root = document.documentElement;
+          const computedColor = getComputedStyle(root).getPropertyValue('--primary-color').trim();
+          return computedColor || getThemeColor(DEFAULT_THEME);
+        }
+        return getThemeColor(DEFAULT_THEME);
+      };
+      
+      // 初始化颜色
+      setCurrentThemeColor(getCssVariableColor());
+      
+      // 监听主题变化
+      const handleThemeChange = () => {
+        setCurrentThemeColor(getCssVariableColor());
+      };
+      
+      window.addEventListener('themeChange', handleThemeChange);
+      
+      // 如果当前选中了主题，应用该主题的颜色
+      updateThemeColor();
+      
+      return () => {
+        window.removeEventListener('themeChange', handleThemeChange);
+      };
+    }
+  }, [theme]);
 
   // 加载用户头像
   useEffect(() => {
@@ -209,6 +250,12 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     const newTheme = e.target.value;
     setTheme(newTheme);
     
+    // 当选择新主题时立即更新主题色（仅用于预览）
+    const themeObj = AVAILABLE_THEMES.find(t => t.key === newTheme);
+    if (themeObj) {
+      setCurrentThemeColor(themeObj.primary);
+    }
+    
     // 更新表单数据
     form.setFieldsValue({ theme: newTheme });
     
@@ -223,6 +270,9 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   };
   
   if (!visible) return null;
+  
+  // 如果没有设置当前主题色，使用主题对应的颜色或默认颜色
+  const themeColor = currentThemeColor || getThemeColor(theme);
   
   return (
     <Form
@@ -254,6 +304,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           <Button 
             icon={uploading ? <LoadingOutlined /> : <UploadOutlined />} 
             className={styles.uploadButton}
+            style={{ borderColor: themeColor, color: themeColor }}
           >
             {uploading ? '上传中...' : '更改头像'}
           </Button>
@@ -318,8 +369,8 @@ export default function Settings({ visible, onClose, settings, onSave }) {
 
       {isAutoValidating && (
         <div className={styles.validatingIndicator}>
-          <Spin indicator={<LoadingOutlined style={{ marginRight: 8 }} />} />
-          <span>正在验证API密钥...</span>
+          <Spin indicator={<LoadingOutlined style={{ fontSize: 16, marginRight: 8, color: themeColor }} />} />
+          <span style={{ color: themeColor }}>正在验证API密钥...</span>
         </div>
       )}
 
@@ -357,6 +408,8 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           }}
           onChange={handleTemperatureChange}
           value={temperature}
+          trackStyle={{ backgroundColor: themeColor }}
+          handleStyle={{ borderColor: themeColor, backgroundColor: themeColor }}
         />
       </Form.Item>
 
@@ -367,10 +420,17 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           marginTop: '30px' 
         }}>
           <Space size="small">
-            <Button type="primary" htmlType="submit">
+            <Button 
+              type="primary" 
+              htmlType="submit"
+              style={{ backgroundColor: themeColor, borderColor: themeColor }}
+            >
               保存
             </Button>
-            <Button onClick={handleCancel}>
+            <Button 
+              onClick={handleCancel}
+              style={{ borderColor: themeColor, color: themeColor }}
+            >
               取消
             </Button>
           </Space>

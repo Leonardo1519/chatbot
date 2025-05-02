@@ -28,6 +28,33 @@ export function Providers({ children }) {
     const root = document.documentElement;
     root.style.setProperty('--primary-color', themeColor);
     
+    // 实时监听CSS变量变化的函数
+    const observeCSSVariableChanges = () => {
+      if (!window.MutationObserver) return null;
+      
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.attributeName === 'style') {
+            // 当root样式变化时，获取最新的primary-color值
+            const newColor = getComputedStyle(root).getPropertyValue('--primary-color').trim();
+            if (newColor && newColor !== primaryColor) {
+              setPrimaryColor(newColor);
+            }
+          }
+        }
+      });
+      
+      observer.observe(root, {
+        attributes: true,
+        attributeFilter: ['style']
+      });
+      
+      return observer;
+    };
+    
+    // 启动CSS变量监听
+    const observer = observeCSSVariableChanges();
+    
     // 监听storage事件以检测其他标签页的变化
     const handleStorageChange = () => {
       const newTheme = getTheme();
@@ -48,8 +75,9 @@ export function Providers({ children }) {
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('themeChange', handleStorageChange);
+      if (observer) observer.disconnect();
     };
-  }, []);
+  }, [primaryColor]);
 
   return (
     <ClientOnly>
