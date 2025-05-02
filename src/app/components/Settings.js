@@ -157,6 +157,11 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       document.head.appendChild(stylesheet);
       setTimeout(() => document.head.removeChild(stylesheet), 100);
       
+      // 保存主题设置到localStorage，确保下次会话中可以使用
+      const currentSettings = loadSettings();
+      const newSettings = { ...currentSettings, theme: values.theme };
+      saveSettings(newSettings);
+      
       // 触发主题变化事件
       window.dispatchEvent(new CustomEvent('themeChange'));
     }

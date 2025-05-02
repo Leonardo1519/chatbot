@@ -61,17 +61,7 @@ export function getTheme() {
   if (!isClient) return DEFAULT_THEME;
   
   try {
-    // 从localStorage中读取当前使用的主题
-    const settings = localStorage.getItem('chatSettings');
-    if (settings) {
-      const parsedSettings = JSON.parse(settings);
-      // 检查是否有theme字段并且是有效的主题
-      if (parsedSettings.theme && AVAILABLE_THEMES.some(t => t.key === parsedSettings.theme)) {
-        return parsedSettings.theme;
-      }
-    }
-    
-    // 如果没有找到有效的主题设置，返回默认主题
+    // 始终返回默认主题（蓝色），确保每次重新进入页面都使用蓝色主题
     return DEFAULT_THEME;
   } catch (error) {
     console.error('获取主题时出错:', error);

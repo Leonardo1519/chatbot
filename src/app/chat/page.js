@@ -139,6 +139,8 @@ export default function ChatPage() {
         if (!savedSettings.apiKey) {
           savedSettings.apiKey = DEFAULT_API_KEY;
         }
+        // 始终将主题设置为默认蓝色主题
+        savedSettings.theme = DEFAULT_THEME;
         setSettings(savedSettings);
         saveSettings(savedSettings);
       } else {
@@ -147,9 +149,8 @@ export default function ChatPage() {
         saveSettings(DEFAULT_SETTINGS);
       }
       
-      // 使用用户设置的主题或默认主题设置CSS变量
-      const userTheme = savedSettings.theme || DEFAULT_THEME;
-      const themeObj = AVAILABLE_THEMES.find(t => t.key === userTheme);
+      // 使用默认蓝色主题设置CSS变量
+      const themeObj = AVAILABLE_THEMES.find(t => t.key === DEFAULT_THEME);
       if (themeObj && document.documentElement) {
         document.documentElement.style.setProperty('--primary-color', themeObj.primary);
       }

@@ -18,10 +18,9 @@ export function Providers({ children }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // 初始化主题 - 使用用户保存的主题
-    const initialTheme = getTheme();
-    setCurrentTheme(initialTheme);
-    const themeColor = getThemeColor(initialTheme);
+    // 初始化主题 - 始终使用默认蓝色主题
+    setCurrentTheme(DEFAULT_THEME);
+    const themeColor = getThemeColor(DEFAULT_THEME);
     setPrimaryColor(themeColor);
     
     // 设置CSS变量为当前主题色
@@ -57,6 +56,7 @@ export function Providers({ children }) {
     
     // 监听storage事件以检测其他标签页的变化
     const handleStorageChange = () => {
+      // 获取变更后的主题
       const newTheme = getTheme();
       setCurrentTheme(newTheme);
       const newColor = getThemeColor(newTheme);
