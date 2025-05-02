@@ -201,6 +201,11 @@ export default function ChatPage() {
         ? { ...session, messages: newMessages }
         : session
     ));
+    
+    // 当消息更新后，触发主题变化事件，确保所有消息应用正确的主题
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('themeChange'));
+    }, 50);
   };
 
   // 重命名会话
@@ -365,6 +370,9 @@ export default function ChatPage() {
             if (chatMessagesRef.current) {
               chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
             }
+            
+            // 触发主题变化事件，确保新消息使用正确的主题色
+            window.dispatchEvent(new CustomEvent('themeChange'));
           }, 100);
         },
         (error) => {

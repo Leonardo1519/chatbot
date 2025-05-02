@@ -71,6 +71,18 @@
   isolation: isolate;
 }
 
+/* 确保聊天气泡能正确响应主题色变化 */
+.messageContainer, 
+.message, 
+.messageContent {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0.8; }
+  to { opacity: 1; }
+}
+
 /* 防止列表和段落元素导致的布局变动 */
 .messageContent p,
 .messageContent h1,

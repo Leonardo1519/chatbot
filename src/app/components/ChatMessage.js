@@ -177,8 +177,20 @@ const ChatMessage = memo(({ message, isTyping }) => {
   
   // 生成基于主题的样式
   const themeStyles = useMemo(() => {
-    // 获取主题颜色
-    const themeColor = getThemeColor(currentTheme);
+    // 获取主题颜色 - 优先使用CSS变量中的颜色，以确保最新的消息也能获取到正确的主题色
+    let themeColor;
+    if (typeof window !== 'undefined' && document) {
+      const root = document.documentElement;
+      const cssVarColor = getComputedStyle(root).getPropertyValue('--primary-color').trim();
+      // 如果CSS变量中有颜色值，则优先使用它
+      if (cssVarColor) {
+        themeColor = cssVarColor;
+      } else {
+        themeColor = getThemeColor(currentTheme);
+      }
+    } else {
+      themeColor = getThemeColor(currentTheme);
+    }
     
     // 动态生成颜色变体
     const lightThemeColor = `${themeColor}20`; // 更淡的颜色用于背景 (20% 透明度)
@@ -224,7 +236,7 @@ const ChatMessage = memo(({ message, isTyping }) => {
         backgroundColor: themeColor
       }
     };
-  }, [currentTheme]);
+  }, [currentTheme, message]); // 添加message作为依赖项，确保消息变化时重新计算样式
   
   // 优化内容稳定性
   useEffect(() => {
@@ -289,6 +301,35 @@ const ChatMessage = memo(({ message, isTyping }) => {
     }
   }, [message.text, message.isSender]);
   
+  // 强制更新主题色的效果（用于新生成的消息）
+  useEffect(() => {
+    // 创建强制更新函数
+    const forceUpdate = () => {
+      // 获取当前CSS变量中的主题色
+      if (typeof window !== 'undefined' && document) {
+        const root = document.documentElement;
+        const cssVarColor = getComputedStyle(root).getPropertyValue('--primary-color').trim();
+        if (cssVarColor) {
+          // 查找对应的主题
+          const themeEntry = AVAILABLE_THEMES.find(t => t.primary === cssVarColor);
+          if (themeEntry && themeEntry.key !== currentTheme) {
+            setCurrentTheme(themeEntry.key);
+          }
+        }
+      }
+    };
+    
+    // 订阅主题变化事件
+    window.addEventListener('themeChange', forceUpdate);
+    
+    // 首次挂载时立即执行一次，确保新消息使用正确的主题色
+    forceUpdate();
+    
+    return () => {
+      window.removeEventListener('themeChange', forceUpdate);
+    };
+  }, [currentTheme]);
+
   const getAvatar = (role) => {
     if (message.isSender) {
       return userAvatar 

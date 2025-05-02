@@ -38,6 +38,9 @@ export function Providers({ children }) {
             const newColor = getComputedStyle(root).getPropertyValue('--primary-color').trim();
             if (newColor && newColor !== primaryColor) {
               setPrimaryColor(newColor);
+              
+              // 主动触发主题变化事件，确保所有组件都能及时更新
+              window.dispatchEvent(new CustomEvent('themeChange'));
             }
           }
         }
@@ -64,6 +67,9 @@ export function Providers({ children }) {
       
       // 更新CSS变量
       root.style.setProperty('--primary-color', newColor);
+      
+      // 主动触发主题变化事件，确保所有组件都能及时更新
+      window.dispatchEvent(new CustomEvent('themeChange'));
     };
     
     // 创建自定义事件监听器
@@ -71,6 +77,11 @@ export function Providers({ children }) {
     
     // 创建一个自定义事件，当在同一标签页内修改主题时触发
     window.addEventListener('themeChange', handleStorageChange);
+    
+    // 初始化后立即触发一次主题变化事件，确保所有组件都使用正确的颜色
+    setTimeout(() => {
+      window.dispatchEvent(new CustomEvent('themeChange'));
+    }, 100);
     
     return () => {
       window.removeEventListener('storage', handleStorageChange);
