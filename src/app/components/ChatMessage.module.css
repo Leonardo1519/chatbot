@@ -59,18 +59,23 @@
   word-wrap: break-word;
   word-break: break-word;
   
-  /* 优化渲染 - 兼容Safari */
-  /* Safari不支持content-visibility，为Safari提供降级方案 */
+  /* 优化渲染 */
   -webkit-transform: translateZ(0);
   transform: translateZ(0);
+  will-change: contents;
   contain: content;
-  /* 有些浏览器不支持content-visibility */
   content-visibility: auto;
-  /* Safari替代方案 */
+  
+  /* 减少重绘 */
   -webkit-font-smoothing: antialiased;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  
+  /* 创建层叠上下文，确保渲染隔离 */
+  isolation: isolate;
 }
 
-/* 优化ReactMarkdown渲染 */
+/* 防止列表和段落元素导致的布局变动 */
 .messageContent p,
 .messageContent h1,
 .messageContent h2,
@@ -83,8 +88,19 @@
 .messageContent li,
 .messageContent pre,
 .messageContent blockquote {
-  /* 这些元素的变化不会影响其他元素布局 */
+  /* 使这些元素的变化不影响其他元素布局 */
   contain: content;
+  margin-bottom: 0.5em;
+  transform: translateZ(0);
+}
+
+/* 防止从外部继承的动画干扰内容稳定性 */
+.stableContent > div,
+.stableContent > p,
+.stableContent > span {
+  animation: none !important;
+  transition: none !important;
+  will-change: auto;
 }
 
 /* 用户消息内容 - 背景色由JS动态设置 */
@@ -230,17 +246,27 @@
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   
-  /* 移除动画效果 */
-  animation: none;
-  transition: none;
+  /* 确保平滑过渡 */
+  opacity: 1;
+  transition: opacity 0.05s ease-in-out;
   
   /* 优化文本渲染 */
   text-rendering: optimizeSpeed;
   -webkit-font-smoothing: antialiased;
+  
+  /* 硬件加速渲染 */
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  
+  /* 阻止子元素导致的重排 */
+  contain: content;
 }
 
-/* 移除可能导致闪烁的动画效果 */
-.stableContent > div {
-  animation: none !important;
-  transition: none !important;
+/* 非稳定状态下的内容 */
+.unstableContent {
+  opacity: 0.95;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  transition: none;
+  will-change: contents;
 } 

@@ -271,43 +271,73 @@ export default function ChatPage() {
       
       // 流式响应的当前文本
       let currentText = '';
+      // 缓冲区和上次更新时间戳，用于节流更新
+      let buffer = '';
+      let lastUpdateTime = Date.now();
+      // 用于防止过于频繁更新的节流间隔（毫秒）
+      const throttleInterval = 120;
+      
+      // 更新消息的函数
+      const updateMessageWithText = (text) => {
+        setMessages(prev => {
+          // 创建消息数组的副本
+          const updated = [...prev];
+          // 找到最后一条AI消息并更新其文本
+          const lastAiMsgIndex = updated.length - 1;
+          if (lastAiMsgIndex >= 0 && !updated[lastAiMsgIndex].isSender) {
+            updated[lastAiMsgIndex] = {
+              ...updated[lastAiMsgIndex],
+              text: text
+            };
+          }
+          return updated;
+        });
+        
+        // 使用requestAnimationFrame优化滚动
+        requestAnimationFrame(() => {
+          if (chatMessagesRef.current) {
+            chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+          }
+        });
+      };
       
       // 调用流式API
       await streamMessage(
         apiKey,
         newMessages.slice(0, -1), // 只发送用户消息，不包括空的AI消息
         (chunk) => {
-          // 直接累加文本并立即更新
-          currentText += chunk;
+          // 累加文本到缓冲区
+          buffer += chunk;
           
-          // 立即更新消息，确保实时显示
-          setMessages(prev => {
-            // 创建消息数组的副本
-            const updated = [...prev];
-            // 找到最后一条AI消息并更新其文本
-            const lastAiMsgIndex = updated.length - 1;
-            if (lastAiMsgIndex >= 0 && !updated[lastAiMsgIndex].isSender) {
-              updated[lastAiMsgIndex] = {
-                ...updated[lastAiMsgIndex],
-                text: currentText
-              };
-            }
-            return updated;
-          });
+          // 当前时间
+          const now = Date.now();
           
-          // 滚动到底部，确保看到最新内容
-          if (chatMessagesRef.current) {
-            chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+          // 如果积累了足够的文本或者距离上次更新已经超过节流间隔，则更新界面
+          if (buffer.length > 20 || now - lastUpdateTime > throttleInterval) {
+            // 更新当前文本并清空缓冲区
+            currentText += buffer;
+            buffer = '';
+            
+            // 更新时间戳
+            lastUpdateTime = now;
+            
+            // 更新UI
+            updateMessageWithText(currentText);
           }
         },
         (fullResponse) => {
-          // 完成响应
+          // 完成响应，确保任何缓冲区中剩余的文本都被添加
+          currentText += buffer;
           setIsTyping(false);
           
           // 确保最终文本是完整的
           const finalMessages = [...messages, userMessage, { text: fullResponse, isSender: false }];
-          setMessages(finalMessages);
-          updateCurrentSession(finalMessages);
+          
+          // 通过requestAnimationFrame保证状态更新不会频繁触发渲染
+          requestAnimationFrame(() => {
+            setMessages(finalMessages);
+            updateCurrentSession(finalMessages);
+          });
         },
         (error) => {
           // 处理错误

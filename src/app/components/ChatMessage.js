@@ -197,37 +197,53 @@ const ChatMessage = memo(({ message, isTyping }) => {
   // 优化内容稳定性
   useEffect(() => {
     if (!message.isSender && message.text) {
-      // 如果内容长度变化较大，标记为不稳定以减少闪烁
-      const lengthDiff = Math.abs(message.text.length - prevContentLengthRef.current);
-      
-      // 仅当内容大量变化时才重新设置不稳定状态
-      if (lengthDiff > 50) {
-        setContentStable(false);
-        prevContentLengthRef.current = message.text.length;
+      // 使用更可靠的内容处理方式
+      const handleContent = () => {
+        const newText = message.text;
         
-        // 使用requestAnimationFrame确保DOM稳定
-        requestAnimationFrame(() => {
-          setContentStable(true);
-        });
-      } else {
-        prevContentLengthRef.current = message.text.length;
-      }
-      
-      // 使用防抖分析内容分割
-      if (contentRef.current !== message.text) {
-        contentRef.current = message.text;
-        
-        const parts = message.text.split('【计算机教授点评】');
-        if (parts.length > 1) {
-          // 删除IT专家标签
-          const expertPart = parts[0].replace('【IT专家】', '').trim();
-          setExpertContent(expertPart);
-          setProfessorContent(parts[1].trim());
-        } else {
-          // 如果没有找到分隔符，就把全部内容都设为IT专家的
-          setExpertContent(message.text.replace('【IT专家】', '').trim());
-          setProfessorContent('');
+        // 检查内容是否发生变化，避免不必要的更新
+        if (contentRef.current !== newText) {
+          // 拆分消息内容
+          const parts = newText.split('【计算机教授点评】');
+          if (parts.length > 1) {
+            // 删除IT专家标签
+            const expertPart = parts[0].replace('【IT专家】', '').trim();
+            setExpertContent(expertPart);
+            setProfessorContent(parts[1].trim());
+          } else {
+            // 如果没有找到分隔符，就把全部内容都设为IT专家的
+            setExpertContent(newText.replace('【IT专家】', '').trim());
+            setProfessorContent('');
+          }
+          
+          // 更新引用内容
+          contentRef.current = newText;
+          
+          // 只有当内容大幅变化时才触发稳定性处理
+          const lengthDiff = Math.abs(newText.length - prevContentLengthRef.current);
+          if (lengthDiff > 50) {
+            // 使用 requestAnimationFrame 包裹状态更新，确保渲染在同一帧中完成
+            requestAnimationFrame(() => {
+              setContentStable(false);
+              
+              // 使用 requestAnimationFrame 嵌套确保下一帧处理稳定性
+              requestAnimationFrame(() => {
+                prevContentLengthRef.current = newText.length;
+                setContentStable(true);
+              });
+            });
+          } else {
+            prevContentLengthRef.current = newText.length;
+          }
         }
+      };
+      
+      // 使用 requestIdleCallback 在浏览器空闲时处理内容，降低渲染压力
+      if (window.requestIdleCallback) {
+        window.requestIdleCallback(() => handleContent(), { timeout: 100 });
+      } else {
+        // 降级方案
+        setTimeout(handleContent, 0);
       }
     }
   }, [message.text, message.isSender]);
@@ -264,7 +280,16 @@ const ChatMessage = memo(({ message, isTyping }) => {
 
   // 给MarkdownContent组件添加样式
   const MarkdownContentWithStyle = memo(({ content, textStyle }) => (
-    <div style={textStyle} className={contentStable ? styles.stableContent : ''}>
+    <div 
+      style={{
+        ...textStyle,
+        // 增加动画帧缓存，减少内容更新引起的重新渲染
+        transform: 'translateZ(0)',
+        // 添加平滑过渡效果
+        transition: 'opacity 0.05s ease-in-out'
+      }} 
+      className={`${contentStable ? styles.stableContent : styles.unstableContent}`}
+    >
       <MarkdownContent content={content} />
     </div>
   ));
