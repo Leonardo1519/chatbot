@@ -58,8 +58,25 @@ export function getApiKey() {
 
 // 获取当前主题
 export function getTheme() {
-  // 每次打开聊天机器人时，始终返回蓝色作为默认主题
-  return DEFAULT_THEME; // 蓝色主题
+  if (!isClient) return DEFAULT_THEME;
+  
+  try {
+    // 从localStorage中读取当前使用的主题
+    const settings = localStorage.getItem('chatSettings');
+    if (settings) {
+      const parsedSettings = JSON.parse(settings);
+      // 检查是否有theme字段并且是有效的主题
+      if (parsedSettings.theme && AVAILABLE_THEMES.some(t => t.key === parsedSettings.theme)) {
+        return parsedSettings.theme;
+      }
+    }
+    
+    // 如果没有找到有效的主题设置，返回默认主题
+    return DEFAULT_THEME;
+  } catch (error) {
+    console.error('获取主题时出错:', error);
+    return DEFAULT_THEME;
+  }
 }
 
 // 获取主题色值

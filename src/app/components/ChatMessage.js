@@ -150,39 +150,12 @@ const ChatMessage = memo(({ message, isTyping }) => {
     // 启动CSS变量监听
     const unobserve = observeCSSVariableChanges();
     
-    // 添加系统颜色模式变化的监听
-    const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)');
-    const handleColorSchemeChange = () => {
-      // 当系统颜色方案变化时，强制更新
-      setCurrentTheme(prevTheme => {
-        // 触发重新渲染
-        return prevTheme;
-      });
-    };
-    
-    // 根据浏览器支持的API添加事件监听
-    if (mediaQueryList.addEventListener) {
-      mediaQueryList.addEventListener('change', handleColorSchemeChange);
-    } else if (mediaQueryList.addListener) {
-      // 旧版浏览器兼容
-      mediaQueryList.addListener(handleColorSchemeChange);
-    }
-    
     window.addEventListener('storage', handleThemeChange);
     window.addEventListener('themeChange', handleThemeChange);
     
     return () => {
       window.removeEventListener('storage', handleThemeChange);
       window.removeEventListener('themeChange', handleThemeChange);
-      
-      // 移除颜色模式变化的监听
-      if (mediaQueryList.removeEventListener) {
-        mediaQueryList.removeEventListener('change', handleColorSchemeChange);
-      } else if (mediaQueryList.removeListener) {
-        // 旧版浏览器兼容
-        mediaQueryList.removeListener(handleColorSchemeChange);
-      }
-      
       if (unobserve) unobserve();
     };
   }, []);
@@ -193,76 +166,42 @@ const ChatMessage = memo(({ message, isTyping }) => {
     const themeColor = getThemeColor(currentTheme);
     
     // 动态生成颜色变体
-    // 获取CSS变量中定义的值，确保与系统主题匹配
-    const getCSSVariable = (varName, fallback) => {
-      if (typeof window === 'undefined') return fallback;
-      const rootStyle = getComputedStyle(document.documentElement);
-      return rootStyle.getPropertyValue(varName).trim() || fallback;
-    };
-    
-    // 检测系统是否为深色模式
-    const isDarkMode = typeof window !== 'undefined' && 
-      window.matchMedia && 
-      window.matchMedia('(prefers-color-scheme: dark)').matches;
-    
-    // 根据深色/浅色模式调整透明度和颜色
-    // 深色模式下增加亮度，浅色模式下降低亮度
-    const userBgOpacity = isDarkMode ? '35' : '25'; // 用户消息背景透明度
-    const userBorderOpacity = isDarkMode ? '50' : '40'; // 用户消息边框透明度
-    const expertBgOpacity = isDarkMode ? '25' : '15'; // 专家消息背景透明度
-    const expertBorderOpacity = isDarkMode ? '40' : '30'; // 专家消息边框透明度
-    const professorBgOpacity = isDarkMode ? '20' : '10'; // 教授消息背景透明度
-    const professorBorderOpacity = isDarkMode ? '35' : '25'; // 教授消息边框透明度
-    
-    // 从CSS变量获取文本颜色
-    const textColor = getCSSVariable('--bubble-text-color', isDarkMode ? '#f0f0f0' : '#000000');
-    // 从CSS变量获取阴影效果
-    const shadowEffect = getCSSVariable('--bubble-shadow', isDarkMode ? 
-      '0 1px 3px rgba(0, 0, 0, 0.2)' : 
-      '0 1px 2px rgba(0, 0, 0, 0.05)');
-    
-    // 生成各种透明度的主题色
-    const lightThemeColor = `${themeColor}${expertBgOpacity}`; // 专家背景色
-    const mediumThemeColor = `${themeColor}${userBgOpacity}`; // 用户背景色
-    const userBorderThemeColor = `${themeColor}${userBorderOpacity}`; // 用户边框色
-    const expertBorderThemeColor = `${themeColor}${expertBorderOpacity}`; // 专家边框色
-    const professorThemeColor = `${themeColor}${professorBgOpacity}`; // 教授背景色
-    const professorBorderThemeColor = `${themeColor}${professorBorderOpacity}`; // 教授边框色
+    const lightThemeColor = `${themeColor}15`; // 更淡的颜色用于背景 (15% 透明度)
+    const mediumThemeColor = `${themeColor}25`; // 中等强度用于用户消息 (25% 透明度)
+    const borderThemeColor = `${themeColor}40`; // 中等强度用于边框 (40% 透明度)
+    const professorThemeColor = `${themeColor}10`; // 最淡的颜色用于教授消息 (10% 透明度)
     
     return {
       // 用户气泡样式
       senderBubble: {
         backgroundColor: mediumThemeColor,
-        border: `1px solid ${userBorderThemeColor}`,
-        boxShadow: shadowEffect,
+        border: `1px solid ${borderThemeColor}`,
       },
       // 用户文本样式
       senderText: {
-        color: textColor,
+        color: '#000000',
       },
       // AI专家气泡样式
       receiverBubble: {
         backgroundColor: lightThemeColor,
-        border: `1px solid ${expertBorderThemeColor}`,
-        boxShadow: shadowEffect,
-        transition: 'background-color 0.3s ease, border-color 0.3s ease',
+        border: `1px solid ${borderThemeColor}`,
+        transition: 'background-color 0.3s ease',
         willChange: 'contents', // 提示浏览器这个元素内容会改变
       },
       // AI专家文本样式
       receiverText: {
-        color: textColor,
+        color: '#000000',
       },
       // 教授气泡样式
       professorBubble: {
         backgroundColor: professorThemeColor,
-        border: `1px solid ${professorBorderThemeColor}`,
-        boxShadow: shadowEffect,
-        transition: 'background-color 0.3s ease, border-color 0.3s ease',
+        border: `1px solid ${borderThemeColor}`,
+        transition: 'background-color 0.3s ease',
         willChange: 'contents', // 提示浏览器这个元素内容会改变
       },
       // 教授文本样式
       professorText: {
-        color: textColor,
+        color: '#000000',
       },
       // 输入指示器点样式
       dot: {
@@ -333,6 +272,56 @@ const ChatMessage = memo(({ message, isTyping }) => {
       };
     }
   }, [message.text, message.isSender]);
+  
+  // 增强监听主题变化的能力
+  useEffect(() => {
+    // 初始化时获取主题
+    const theme = getTheme();
+    setCurrentTheme(theme);
+    
+    // 创建一个函数专门用于处理主题更新
+    const updateTheme = () => {
+      const newTheme = getTheme();
+      if (newTheme !== currentTheme) {
+        setCurrentTheme(newTheme);
+      }
+    };
+    
+    // 监听CSS变量变化 - 使用MutationObserver观察root样式变化
+    const observeCSSVars = () => {
+      if (typeof window === 'undefined' || !window.MutationObserver) return null;
+      
+      const observer = new MutationObserver((mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.attributeName === 'style') {
+            // 当样式变化时，检查主题颜色是否变化
+            updateTheme();
+            break;
+          }
+        }
+      });
+      
+      observer.observe(document.documentElement, {
+        attributes: true,
+        attributeFilter: ['style']
+      });
+      
+      return observer;
+    };
+    
+    // 启动观察者
+    const observer = observeCSSVars();
+    
+    // 监听storage变化和自定义themeChange事件
+    window.addEventListener('storage', updateTheme);
+    window.addEventListener('themeChange', updateTheme);
+    
+    return () => {
+      window.removeEventListener('storage', updateTheme);
+      window.removeEventListener('themeChange', updateTheme);
+      if (observer) observer.disconnect();
+    };
+  }, [currentTheme]);
   
   const getAvatar = (role) => {
     if (message.isSender) {

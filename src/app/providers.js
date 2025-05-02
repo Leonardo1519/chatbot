@@ -18,13 +18,13 @@ export function Providers({ children }) {
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
-    // 初始化主题
+    // 初始化主题 - 使用用户保存的主题
     const initialTheme = getTheme();
     setCurrentTheme(initialTheme);
     const themeColor = getThemeColor(initialTheme);
     setPrimaryColor(themeColor);
     
-    // 初始设置CSS变量，确保界面主题色默认为蓝色
+    // 设置CSS变量为当前主题色
     const root = document.documentElement;
     root.style.setProperty('--primary-color', themeColor);
     

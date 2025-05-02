@@ -425,24 +425,17 @@ export default function ChatPage() {
     // 检查API密钥是否发生变化
     const apiKeyChanged = settings.apiKey !== newSettings.apiKey;
     
-    // 允许用户在当前会话中应用新主题，但实际保存到存储中的仍是默认蓝色主题
+    // 获取用户选择的主题
     const currentTheme = newSettings.theme;
     
-    // 为保存到存储中的设置强制使用蓝色主题
-    const savedSettings = {
-      ...newSettings,
-      theme: DEFAULT_THEME // 实际存储的主题始终为蓝色
-    };
-    
-    // 状态中使用用户选择的临时主题
-    newSettings.theme = currentTheme;
+    // 保存用户选择的实际主题
     setSettings(newSettings);
     
     if (isClient) {
-      // 保存设置到localStorage (实际存储的主题始终为蓝色)
-      saveSettings(savedSettings);
+      // 保存设置到localStorage（包括用户选择的主题）
+      saveSettings(newSettings);
       
-      // 应用用户选择的临时主题颜色
+      // 应用用户选择的主题颜色
       const themeObj = AVAILABLE_THEMES.find(t => t.key === currentTheme) || AVAILABLE_THEMES[0];
       
       if (themeObj) {

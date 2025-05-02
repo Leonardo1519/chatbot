@@ -42,9 +42,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
 
   // 初始化组件状态
   useEffect(() => {
-    // 设置默认主题为蓝色
-    setTheme(DEFAULT_THEME);
-    
+    // 从设置中获取用户的主题偏好
     if (settings) {
       setApiKey(settings.apiKey || '');
       // 首次加载时使用默认值，之后保留用户设置
@@ -54,17 +52,17 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       const tempValue = settings.temperature !== undefined ? settings.temperature : 0.5;
       setTemperature(tempValue);
       
-      // 确保主题设置为默认的蓝色
-      setTheme(DEFAULT_THEME);
+      // 使用用户保存的主题设置或默认主题
+      setTheme(settings.theme || DEFAULT_THEME);
       
       setIsUsingDefaultKey(settings.apiKey === DEFAULT_API_KEY);
       
-      // 如果是首次加载或值为空，使用默认值，否则使用用户保存的设置，但主题始终为蓝色
+      // 使用用户保存的设置，包括主题
       form.setFieldsValue({
         ...settings,
         model: settings.model || 'deepseek-ai/DeepSeek-V2.5',
         temperature: tempValue, // 确保表单中的温度值与状态一致
-        theme: DEFAULT_THEME // 强制使用蓝色主题
+        theme: settings.theme || DEFAULT_THEME
       });
     }
     
