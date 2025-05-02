@@ -339,29 +339,4 @@
 .settingsForm :global(.ant-divider-with-text::before),
 .settingsForm :global(.ant-divider-with-text::after) {
   border-top-color: #e8e8e8;
-}
-
-/* 主题预览增强 */
-.settingsForm .ant-slider-track,
-.settingsForm .ant-slider-handle,
-.settingsForm .ant-btn {
-  transition: all 0.3s ease;
-}
-
-.settingsForm .ant-slider {
-  margin-bottom: 30px;
-}
-
-/* 阻止ant-design默认颜色覆盖我们的预览颜色 */
-.settingsForm .ant-btn:hover,
-.settingsForm .ant-btn:focus {
-  transition: all 0.3s ease !important;
-}
-
-/* 确保验证状态的颜色也能及时更新 */
-.validatingIndicator {
-  display: flex;
-  align-items: center;
-  margin-bottom: 16px;
-  transition: color 0.3s ease;
 } 

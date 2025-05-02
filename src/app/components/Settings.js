@@ -12,7 +12,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   const [model, setModel] = useState('deepseek-ai/DeepSeek-V2.5');
   const [temperature, setTemperature] = useState(0.5);
   const [theme, setTheme] = useState(DEFAULT_THEME);
-  const [currentThemeColor, setCurrentThemeColor] = useState('');
+  const [previewThemeColor, setPreviewThemeColor] = useState(''); // 用于预览的主题颜色
   const [showApiHelp, setShowApiHelp] = useState(false);
   const [isUsingDefaultKey, setIsUsingDefaultKey] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
@@ -31,17 +31,9 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     { id: 'baichuan-inc/Baichuan3-Turbo', name: 'Baichuan3 Turbo' }
   ];
 
-  // 获取当前主题颜色
+  // 设置初始主题色
   useEffect(() => {
     if (isClient) {
-      // 当选择新主题时更新主题颜色
-      const updateThemeColor = () => {
-        const themeObj = AVAILABLE_THEMES.find(t => t.key === theme);
-        if (themeObj) {
-          setCurrentThemeColor(themeObj.primary);
-        }
-      };
-      
       // 从CSS变量获取当前主题颜色
       const getCssVariableColor = () => {
         if (typeof document !== 'undefined') {
@@ -53,23 +45,10 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       };
       
       // 初始化颜色
-      setCurrentThemeColor(getCssVariableColor());
-      
-      // 监听主题变化
-      const handleThemeChange = () => {
-        setCurrentThemeColor(getCssVariableColor());
-      };
-      
-      window.addEventListener('themeChange', handleThemeChange);
-      
-      // 如果当前选中了主题，应用该主题的颜色
-      updateThemeColor();
-      
-      return () => {
-        window.removeEventListener('themeChange', handleThemeChange);
-      };
+      const initialColor = getCssVariableColor();
+      setPreviewThemeColor(initialColor);
     }
-  }, [theme]);
+  }, []);
 
   // 加载用户头像
   useEffect(() => {
@@ -94,7 +73,14 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       setTemperature(tempValue);
       
       // 使用用户保存的主题设置或默认主题
-      setTheme(settings.theme || DEFAULT_THEME);
+      const savedTheme = settings.theme || DEFAULT_THEME;
+      setTheme(savedTheme);
+      
+      // 设置主题预览颜色
+      const themeObj = AVAILABLE_THEMES.find(t => t.key === savedTheme);
+      if (themeObj) {
+        setPreviewThemeColor(themeObj.primary);
+      }
       
       setIsUsingDefaultKey(settings.apiKey === DEFAULT_API_KEY);
       
@@ -138,21 +124,6 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     return () => clearTimeout(timeoutId);
   }, [apiKey, isUsingDefaultKey]);
 
-  // 在组件卸载时清除预览样式
-  useEffect(() => {
-    return () => {
-      // 清除任何预览样式
-      if (window.previewStylesheet && typeof document !== 'undefined') {
-        try {
-          document.head.removeChild(window.previewStylesheet);
-          window.previewStylesheet = null;
-        } catch (e) {
-          console.error('移除预览样式时出错', e);
-        }
-      }
-    };
-  }, []);
-
   const handleSubmit = (values) => {
     // 保存用户选择的值
     const updatedValues = {
@@ -162,17 +133,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       theme: values.theme
     };
     
-    // 清除临时预览样式
-    if (window.previewStylesheet && typeof document !== 'undefined') {
-      try {
-        document.head.removeChild(window.previewStylesheet);
-        window.previewStylesheet = null;
-      } catch (e) {
-        console.error('移除预览样式时出错', e);
-      }
-    }
-    
-    // 只在点击保存按钮时应用主题颜色
+    // 只在点击保存按钮时应用主题颜色到全局
     if (isClient) {
       const themeObj = AVAILABLE_THEMES.find(t => t.key === values.theme) || AVAILABLE_THEMES[0];
       
@@ -214,18 +175,15 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     setTemperature(settings.temperature !== undefined ? settings.temperature : 0.5);
     setTheme(settings.theme || DEFAULT_THEME);
     
+    // 重置主题预览颜色为当前保存的设置
+    const currentTheme = settings.theme || DEFAULT_THEME;
+    const themeObj = AVAILABLE_THEMES.find(t => t.key === currentTheme);
+    if (themeObj) {
+      setPreviewThemeColor(themeObj.primary);
+    }
+    
     // 清除验证错误消息
     setValidationError('');
-    
-    // 清除任何预览样式
-    if (window.previewStylesheet && typeof document !== 'undefined') {
-      try {
-        document.head.removeChild(window.previewStylesheet);
-        window.previewStylesheet = null;
-      } catch (e) {
-        console.error('移除预览样式时出错', e);
-      }
-    }
     
     // 不应用任何颜色变更，直接关闭设置面板
     onClose();
@@ -285,54 +243,11 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     const newTheme = e.target.value;
     setTheme(newTheme);
     
-    // 当选择新主题时立即更新主题色（用于预览）
+    // 当选择新主题时立即更新预览主题色
     const themeObj = AVAILABLE_THEMES.find(t => t.key === newTheme);
     if (themeObj) {
-      setCurrentThemeColor(themeObj.primary);
-      
-      // 为预览效果临时设置CSS变量
-      if (typeof document !== 'undefined') {
-        // 只在Settings组件内应用样式预览，不影响全局
-        const stylesheet = document.createElement('style');
-        // 使用更高的CSS权重确保样式应用
-        stylesheet.textContent = `
-          /* 增加CSS选择器特异性以提高权重 */
-          html body .${styles.settingsForm} .ant-slider-track,
-          html body .${styles.settingsForm} .ant-slider-handle,
-          html body .${styles.settingsForm} .ant-btn {
-            border-color: ${themeObj.primary} !important;
-          }
-          
-          html body .${styles.settingsForm} .ant-slider-track,
-          html body .${styles.settingsForm} .ant-slider-handle {
-            background-color: ${themeObj.primary} !important;
-          }
-          
-          html body .${styles.settingsForm} .ant-btn-primary {
-            background-color: ${themeObj.primary} !important;
-          }
-          
-          html body .${styles.settingsForm} .ant-btn:not(.ant-btn-primary) {
-            color: ${themeObj.primary} !important;
-          }
-          
-          html body .${styles.settingsForm} .${styles.validatingIndicator},
-          html body .${styles.settingsForm} .${styles.validatingIndicator} span {
-            color: ${themeObj.primary} !important;
-          }
-          
-          html body .${styles.settingsForm} .anticon-loading {
-            color: ${themeObj.primary} !important;
-          }
-        `;
-        document.head.appendChild(stylesheet);
-        
-        // 保存样式表引用以便稍后移除
-        if (window.previewStylesheet) {
-          document.head.removeChild(window.previewStylesheet);
-        }
-        window.previewStylesheet = stylesheet;
-      }
+      // 立即设置预览颜色，这会影响组件的样式，但不会影响全局样式
+      setPreviewThemeColor(themeObj.primary);
     }
     
     // 更新表单数据
@@ -346,9 +261,6 @@ export default function Settings({ visible, onClose, settings, onSave }) {
   };
   
   if (!visible) return null;
-  
-  // 如果没有设置当前主题色，使用主题对应的颜色或默认颜色
-  const themeColor = currentThemeColor || getThemeColor(theme);
   
   return (
     <Form
@@ -380,7 +292,7 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           <Button 
             icon={uploading ? <LoadingOutlined /> : <UploadOutlined />} 
             className={styles.uploadButton}
-            style={{ borderColor: themeColor, color: themeColor }}
+            style={{ borderColor: previewThemeColor, color: previewThemeColor }}
           >
             {uploading ? '上传中...' : '更改头像'}
           </Button>
@@ -445,8 +357,8 @@ export default function Settings({ visible, onClose, settings, onSave }) {
 
       {isAutoValidating && (
         <div className={styles.validatingIndicator}>
-          <Spin indicator={<LoadingOutlined style={{ fontSize: 16, marginRight: 8, color: themeColor }} />} />
-          <span style={{ color: themeColor }}>正在验证API密钥...</span>
+          <Spin indicator={<LoadingOutlined style={{ fontSize: 16, marginRight: 8, color: previewThemeColor }} />} />
+          <span style={{ color: previewThemeColor }}>正在验证API密钥...</span>
         </div>
       )}
 
@@ -484,8 +396,8 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           }}
           onChange={handleTemperatureChange}
           value={temperature}
-          trackStyle={{ backgroundColor: themeColor }}
-          handleStyle={{ borderColor: themeColor, backgroundColor: themeColor }}
+          trackStyle={{ backgroundColor: previewThemeColor }}
+          handleStyle={{ borderColor: previewThemeColor, backgroundColor: previewThemeColor }}
         />
       </Form.Item>
 
@@ -499,13 +411,13 @@ export default function Settings({ visible, onClose, settings, onSave }) {
             <Button 
               type="primary" 
               htmlType="submit"
-              style={{ backgroundColor: themeColor, borderColor: themeColor }}
+              style={{ backgroundColor: previewThemeColor, borderColor: previewThemeColor }}
             >
               保存
             </Button>
             <Button 
               onClick={handleCancel}
-              style={{ borderColor: themeColor, color: themeColor }}
+              style={{ borderColor: previewThemeColor, color: previewThemeColor }}
             >
               取消
             </Button>
