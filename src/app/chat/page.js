@@ -287,40 +287,27 @@ export default function ChatPage() {
           // 如果内容与上次相同，不更新UI
           if (responseBuffer === lastContent) return;
           
-          // 使用防抖方式更新UI，防止频繁渲染
-          if (bufferTimer) {
-            clearTimeout(bufferTimer);
-          }
+          // 直接更新消息，不使用防抖或缓冲，实现逐字输出效果
+          setMessages(prev => {
+            const updated = [...prev];
+            // 更新最后一条消息（AI的响应）
+            if (updated.length > 0) {
+              const lastMsg = updated[updated.length - 1];
+              if (!lastMsg.isSender) {
+                lastMsg.text = responseBuffer;
+                lastContent = responseBuffer;
+                lastMsg.isLoading = false;
+              }
+            }
+            return updated;
+          });
           
-          bufferTimer = setTimeout(() => {
-            // 更新消息内容
-            setMessages(prev => {
-              const updated = [...prev];
-              // 更新最后一条消息（AI的响应）
-              if (updated.length > 0) {
-                const lastMsg = updated[updated.length - 1];
-                if (!lastMsg.isSender) {
-                  // 仅当内容有变化时才更新
-                  if (lastMsg.text !== responseBuffer) {
-                    lastMsg.text = responseBuffer;
-                    lastContent = responseBuffer;
-                    lastMsg.isLoading = false;
-                  }
-                }
-              }
-              return updated;
-            });
-            
-            // 使用requestAnimationFrame确保滚动发生在渲染之后
-            requestAnimationFrame(() => {
-              if (chatMessagesRef.current) {
-                chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
-              }
-            });
-            
-            // 清除定时器
-            bufferTimer = null;
-          }, BUFFER_UPDATE_INTERVAL);
+          // 使用requestAnimationFrame确保滚动发生在渲染之后
+          requestAnimationFrame(() => {
+            if (chatMessagesRef.current) {
+              chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+            }
+          });
         },
         (fullResponse) => {
           // 完成
@@ -332,6 +319,9 @@ export default function ChatPage() {
             const completeMessages = [...newMessages, { text: fullResponse, isSender: false }];
             setMessages(completeMessages);
             updateCurrentSession(completeMessages);
+          } else {
+            // 已经是最新内容，只需更新会话历史
+            updateCurrentSession([...newMessages, { text: lastContent, isSender: false }]);
           }
         },
         (error) => {

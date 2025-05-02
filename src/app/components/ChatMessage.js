@@ -9,77 +9,103 @@ import ClientOnly from './ClientOnly';
 const { Text, Paragraph } = Typography;
 
 // 使用memo优化MarkdownContent组件，只有当content变化时才重新渲染
-const MarkdownContent = memo(({ content }) => (
-  <ClientOnly>
-    <ReactMarkdown
-      components={{
-        p: ({ children }) => (
-          <Paragraph className={styles.paragraph}>
-            {children}
-          </Paragraph>
-        ),
-        h1: ({ children }) => (
-          <Typography.Title level={5} className={styles.heading}>
-            {children}
-          </Typography.Title>
-        ),
-        h2: ({ children }) => (
-          <Typography.Title level={5} className={styles.heading}>
-            {children}
-          </Typography.Title>
-        ),
-        h3: ({ children }) => (
-          <Typography.Title level={5} className={styles.heading}>
-            {children}
-          </Typography.Title>
-        ),
-        h4: ({ children }) => (
-          <Typography.Title level={5} className={styles.heading}>
-            {children}
-          </Typography.Title>
-        ),
-        h5: ({ children }) => (
-          <Typography.Title level={5} className={styles.heading}>
-            {children}
-          </Typography.Title>
-        ),
-        h6: ({ children }) => (
-          <Typography.Title level={5} className={styles.heading}>
-            {children}
-          </Typography.Title>
-        ),
-        ul: ({ children }) => (
-          <ul className={styles.list}>{children}</ul>
-        ),
-        ol: ({ children }) => (
-          <ol className={styles.list}>{children}</ol>
-        ),
-        li: ({ children }) => (
-          <li className={styles.listItem}>
-            {children}
-          </li>
-        ),
-        code: ({ children }) => (
-          <Text code className={styles.code}>
-            {children}
-          </Text>
-        ),
-        pre: ({ children }) => (
-          <pre className={styles.pre}>
-            {children}
-          </pre>
-        ),
-        blockquote: ({ children }) => (
-          <blockquote className={styles.blockquote}>
-            {children}
-          </blockquote>
-        ),
-      }}
-    >
-      {content}
-    </ReactMarkdown>
-  </ClientOnly>
-));
+const MarkdownContent = memo(({ content }) => {
+  // 使用useRef跟踪内容变化
+  const contentRef = useRef('');
+  const [renderedContent, setRenderedContent] = useState(content);
+  
+  // 使用防抖处理内容更新，避免频繁重渲染Markdown
+  useEffect(() => {
+    if (content === contentRef.current) return;
+    
+    const lengthDiff = Math.abs(content.length - contentRef.current.length);
+    const hasSubstantialChange = lengthDiff > 100;
+    
+    // 只有当内容变化足够大时，才立即更新
+    if (hasSubstantialChange) {
+      contentRef.current = content;
+      setRenderedContent(content);
+    } else {
+      // 对于小的增量更新，使用requestAnimationFrame平滑渲染
+      requestAnimationFrame(() => {
+        contentRef.current = content;
+        setRenderedContent(content);
+      });
+    }
+  }, [content]);
+  
+  return (
+    <ClientOnly>
+      <ReactMarkdown
+        components={{
+          p: ({ children }) => (
+            <Paragraph className={styles.paragraph}>
+              {children}
+            </Paragraph>
+          ),
+          h1: ({ children }) => (
+            <Typography.Title level={5} className={styles.heading}>
+              {children}
+            </Typography.Title>
+          ),
+          h2: ({ children }) => (
+            <Typography.Title level={5} className={styles.heading}>
+              {children}
+            </Typography.Title>
+          ),
+          h3: ({ children }) => (
+            <Typography.Title level={5} className={styles.heading}>
+              {children}
+            </Typography.Title>
+          ),
+          h4: ({ children }) => (
+            <Typography.Title level={5} className={styles.heading}>
+              {children}
+            </Typography.Title>
+          ),
+          h5: ({ children }) => (
+            <Typography.Title level={5} className={styles.heading}>
+              {children}
+            </Typography.Title>
+          ),
+          h6: ({ children }) => (
+            <Typography.Title level={5} className={styles.heading}>
+              {children}
+            </Typography.Title>
+          ),
+          ul: ({ children }) => (
+            <ul className={styles.list}>{children}</ul>
+          ),
+          ol: ({ children }) => (
+            <ol className={styles.list}>{children}</ol>
+          ),
+          li: ({ children }) => (
+            <li className={styles.listItem}>
+              {children}
+            </li>
+          ),
+          code: ({ children }) => (
+            <Text code className={styles.code}>
+              {children}
+            </Text>
+          ),
+          pre: ({ children }) => (
+            <pre className={styles.pre}>
+              {children}
+            </pre>
+          ),
+          blockquote: ({ children }) => (
+            <blockquote className={styles.blockquote}>
+              {children}
+            </blockquote>
+          ),
+        }}
+      >
+        {renderedContent}
+      </ReactMarkdown>
+    </ClientOnly>
+  );
+});
 
 // 添加displayName以方便调试
 MarkdownContent.displayName = 'MarkdownContent';

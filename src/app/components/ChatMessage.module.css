@@ -58,6 +58,11 @@
   backface-visibility: hidden;
   perspective: 1000px;
   will-change: transform, opacity;
+  /* 防止文本内容变化时元素尺寸变化导致的重排和闪烁 */
+  min-height: 20px;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
 }
 
 /* 用户消息内容 - 背景色由JS动态设置 */
@@ -204,6 +209,13 @@
   backface-visibility: hidden;
   animation: fadeIn 0.2s ease-in-out;
   will-change: transform, opacity;
+  /* 提高文本渲染性能 */
+  text-rendering: optimizeSpeed;
+}
+
+/* 添加文本内容显示策略，使逐字输出更平滑 */
+.stableContent > div {
+  animation: none !important;
 }
 
 @keyframes fadeIn {
