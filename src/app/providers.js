@@ -91,6 +91,20 @@ export function Providers({ children }) {
               borderRadius: 4,
             },
             algorithm: theme.defaultAlgorithm,
+            components: {
+              Input: {
+                // 自定义Input组件样式
+                colorPrimaryHover: undefined, // 禁用默认悬停效果
+                activeBorderColor: '#d9d9d9', // 保持描边颜色
+                hoverBorderColor: '#d9d9d9',  // 保持描边颜色
+              },
+              TextArea: {
+                // TextArea组件也应用同样设置
+                colorPrimaryHover: undefined, 
+                activeBorderColor: '#d9d9d9',
+                hoverBorderColor: '#d9d9d9',
+              },
+            }
           }}
         >
           {children}

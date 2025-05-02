@@ -235,6 +235,36 @@
   font-size: 12px;
 }
 
+/* 自定义滑块圆点的样式 */
+.settingsForm :global(.ant-slider-dot) {
+  transition: border-color 0.3s ease;
+}
+
+/* 自定义滑块轨道的样式 */
+.settingsForm :global(.ant-slider-rail) {
+  transition: background-color 0.3s ease;
+}
+
+/* 自定义已选择的轨道部分的样式 */
+.settingsForm :global(.ant-slider-track) {
+  transition: background-color 0.3s ease;
+}
+
+/* 自定义滑块手柄的样式 */
+.settingsForm :global(.ant-slider-handle) {
+  transition: border-color 0.3s ease, box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+/* 自定义标记文本样式 */
+.settingsForm :global(.ant-slider-mark-text) {
+  transition: color 0.3s ease;
+}
+
+/* 自定义活动状态下的标记文本样式 */
+.settingsForm :global(.ant-slider-mark-text-active) {
+  transition: color 0.3s ease;
+}
+
 .settingsForm :global(.ant-form-item-explain) {
   font-size: 12px;
   margin-top: 4px;

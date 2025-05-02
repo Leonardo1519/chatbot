@@ -41,3 +41,20 @@ a {
     color-scheme: dark;
   }
 }
+
+/* 防止聊天输入框响应主题色变化 */
+.chat-input-fixed .ant-input,
+.chat-input-fixed .ant-input:hover,
+.chat-input-fixed .ant-input:focus,
+.chat-input-fixed .ant-input-focused {
+  border-color: #d9d9d9 !important;
+  box-shadow: none !important;
+}
+
+/* 确保TextArea不受到主题色的影响 */
+.ant-input-textarea textarea.ant-input,
+.ant-input-textarea textarea.ant-input:hover,
+.ant-input-textarea textarea.ant-input:focus {
+  border-color: #d9d9d9 !important;
+  box-shadow: none !important;
+}

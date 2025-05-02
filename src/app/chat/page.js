@@ -559,13 +559,20 @@ export default function ChatPage() {
               />
             ))}
           </div>
-          <div className={styles.inputContainer}>
+          <div className={`${styles.inputContainer} chat-input-fixed`}>
             <TextArea
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="输入消息..."
               autoSize={{ minRows: 1, maxRows: 4 }}
+              className={styles.messageTextArea}
+              bordered={true}
+              style={{ 
+                borderColor: '#d9d9d9',
+                borderRadius: '4px',
+                resize: 'none'
+              }}
             />
             <Button
               type="primary"

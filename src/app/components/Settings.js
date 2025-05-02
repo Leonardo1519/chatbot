@@ -153,6 +153,21 @@ export default function Settings({ visible, onClose, settings, onSave }) {
         :root {
           --primary-color: ${themeObj.primary} !important;
         }
+        .ant-slider-dot {
+          border-color: ${themeObj.primary} !important;
+          transition: border-color 0.3s ease;
+        }
+        .ant-slider-dot-active {
+          border-color: ${themeObj.primary} !important;
+          background-color: ${themeObj.primary} !important;
+        }
+        .ant-slider-track {
+          background-color: ${themeObj.primary} !important;
+        }
+        .ant-slider-handle {
+          border-color: ${themeObj.primary} !important;
+          background-color: ${themeObj.primary} !important;
+        }
       `;
       document.head.appendChild(stylesheet);
       setTimeout(() => document.head.removeChild(stylesheet), 100);
@@ -259,6 +274,30 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     if (themeObj) {
       // 立即设置预览颜色，这会影响组件的样式，但不会影响全局样式
       setPreviewThemeColor(themeObj.primary);
+      setSavedThemeColor(themeObj.primary);
+      
+      // 创建一个样式元素来临时应用新的主题颜色到当前组件
+      const styleElement = document.createElement('style');
+      styleElement.textContent = `
+        .ant-slider-dot {
+          border-color: ${themeObj.primary} !important;
+        }
+        .ant-slider-dot-active {
+          border-color: ${themeObj.primary} !important;
+          background-color: ${themeObj.primary} !important;
+        }
+        .ant-slider-mark-text {
+          color: ${themeObj.primary} !important;
+        }
+      `;
+      document.head.appendChild(styleElement);
+      
+      // 短暂延迟后移除样式，避免影响其他组件
+      setTimeout(() => {
+        if (styleElement.parentNode) {
+          styleElement.parentNode.removeChild(styleElement);
+        }
+      }, 100);
     }
     
     // 更新表单数据
@@ -270,7 +309,23 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     setTemperature(value);
     form.setFieldsValue({ temperature: value });
   };
-  
+
+  // 生成基于主题色的安全的盒阴影
+  const getSafeBoxShadow = (color) => {
+    try {
+      // 检查颜色值是否为有效十六进制颜色
+      if (!color || !/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(color)) {
+        return `0 0 0 2px rgba(24, 144, 255, 0.2)`; // 默认蓝色阴影
+      }
+
+      // 将十六进制颜色转换为RGB
+      const hexToRgb = color.replace('#', '').match(/.{2}/g).map(hex => parseInt(hex, 16)).join(', ');
+      return `0 0 0 2px rgba(${hexToRgb}, 0.2)`;
+    } catch (e) {
+      return `0 0 0 2px rgba(24, 144, 255, 0.2)`; // 出错时返回默认值
+    }
+  };
+
   if (!visible) return null;
   
   return (
@@ -401,14 +456,37 @@ export default function Settings({ visible, onClose, settings, onSave }) {
           max={1}
           step={0.1}
           marks={{
-            0: '精确',
-            0.5: '平衡',
-            1: '创意'
+            0: { 
+              style: { color: savedThemeColor || '#1890ff' },
+              label: '精确' 
+            },
+            0.5: { 
+              style: { color: savedThemeColor || '#1890ff' },
+              label: '平衡' 
+            },
+            1: { 
+              style: { color: savedThemeColor || '#1890ff' },
+              label: '创意' 
+            }
           }}
           onChange={handleTemperatureChange}
           value={temperature}
-          trackStyle={{ backgroundColor: savedThemeColor }}
-          handleStyle={{ borderColor: savedThemeColor, backgroundColor: savedThemeColor }}
+          trackStyle={{ backgroundColor: savedThemeColor || '#1890ff' }}
+          handleStyle={{ 
+            borderColor: savedThemeColor || '#1890ff', 
+            backgroundColor: savedThemeColor || '#1890ff',
+            boxShadow: getSafeBoxShadow(savedThemeColor)
+          }}
+          railStyle={{ backgroundColor: `${savedThemeColor || '#1890ff'}30` }}
+          dotStyle={{ 
+            borderColor: savedThemeColor || '#1890ff',
+            backgroundColor: 'white',
+            borderWidth: 2
+          }}
+          activeDotStyle={{
+            borderColor: savedThemeColor || '#1890ff',
+            backgroundColor: savedThemeColor || '#1890ff'
+          }}
         />
       </Form.Item>
 

@@ -459,3 +459,56 @@
   opacity: 0.7 !important;
   cursor: not-allowed;
 }
+
+/* 输入框样式，防止在鼠标悬停或点击时改变边框颜色 */
+.inputContainer :global(.ant-input) {
+  border-color: #d9d9d9 !important;
+  box-shadow: none !important;
+  transition: none !important;
+}
+
+.inputContainer :global(.ant-input:hover),
+.inputContainer :global(.ant-input:focus) {
+  border-color: #d9d9d9 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* 特别针对messageTextArea的样式 */
+.messageTextArea {
+  border: 1px solid #d9d9d9 !important;
+}
+
+.messageTextArea:hover,
+.messageTextArea:focus,
+.messageTextArea:active {
+  border-color: #d9d9d9 !important;
+  box-shadow: none !important;
+  outline: none !important;
+}
+
+/* 确保动画和过渡效果被禁用 */
+.inputContainer :global(.ant-input),
+.inputContainer :global(.ant-input:hover),
+.inputContainer :global(.ant-input:focus),
+.inputContainer :global(.ant-input:active) {
+  animation: none !important;
+  transition: none !important;
+}
+
+.inputContainer :global(.ant-input-affix-wrapper:hover),
+.inputContainer :global(.ant-input-affix-wrapper:focus),
+.inputContainer :global(.ant-input-affix-wrapper-focused) {
+  border-color: #d9d9d9 !important;
+  box-shadow: none !important;
+}
+
+.inputContainer :global(.ant-input-textarea-show-count::after) {
+  color: rgba(0, 0, 0, 0.45) !important;
+}
+
+/* 修复TextArea自动调整大小时的样式 */
+.inputContainer :global(.ant-input-textarea-affix-wrapper) > textarea.ant-input {
+  border: none !important;
+  box-shadow: none !important;
+}
