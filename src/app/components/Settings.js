@@ -138,6 +138,21 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     return () => clearTimeout(timeoutId);
   }, [apiKey, isUsingDefaultKey]);
 
+  // 在组件卸载时清除预览样式
+  useEffect(() => {
+    return () => {
+      // 清除任何预览样式
+      if (window.previewStylesheet && typeof document !== 'undefined') {
+        try {
+          document.head.removeChild(window.previewStylesheet);
+          window.previewStylesheet = null;
+        } catch (e) {
+          console.error('移除预览样式时出错', e);
+        }
+      }
+    };
+  }, []);
+
   const handleSubmit = (values) => {
     // 保存用户选择的值
     const updatedValues = {
@@ -146,6 +161,16 @@ export default function Settings({ visible, onClose, settings, onSave }) {
       temperature: values.temperature, // 确保温度值正确保存
       theme: values.theme
     };
+    
+    // 清除临时预览样式
+    if (window.previewStylesheet && typeof document !== 'undefined') {
+      try {
+        document.head.removeChild(window.previewStylesheet);
+        window.previewStylesheet = null;
+      } catch (e) {
+        console.error('移除预览样式时出错', e);
+      }
+    }
     
     // 只在点击保存按钮时应用主题颜色
     if (isClient) {
@@ -191,6 +216,16 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     
     // 清除验证错误消息
     setValidationError('');
+    
+    // 清除任何预览样式
+    if (window.previewStylesheet && typeof document !== 'undefined') {
+      try {
+        document.head.removeChild(window.previewStylesheet);
+        window.previewStylesheet = null;
+      } catch (e) {
+        console.error('移除预览样式时出错', e);
+      }
+    }
     
     // 不应用任何颜色变更，直接关闭设置面板
     onClose();
@@ -250,17 +285,58 @@ export default function Settings({ visible, onClose, settings, onSave }) {
     const newTheme = e.target.value;
     setTheme(newTheme);
     
-    // 当选择新主题时立即更新主题色（仅用于预览）
+    // 当选择新主题时立即更新主题色（用于预览）
     const themeObj = AVAILABLE_THEMES.find(t => t.key === newTheme);
     if (themeObj) {
       setCurrentThemeColor(themeObj.primary);
+      
+      // 为预览效果临时设置CSS变量
+      if (typeof document !== 'undefined') {
+        // 只在Settings组件内应用样式预览，不影响全局
+        const stylesheet = document.createElement('style');
+        // 使用更高的CSS权重确保样式应用
+        stylesheet.textContent = `
+          /* 增加CSS选择器特异性以提高权重 */
+          html body .${styles.settingsForm} .ant-slider-track,
+          html body .${styles.settingsForm} .ant-slider-handle,
+          html body .${styles.settingsForm} .ant-btn {
+            border-color: ${themeObj.primary} !important;
+          }
+          
+          html body .${styles.settingsForm} .ant-slider-track,
+          html body .${styles.settingsForm} .ant-slider-handle {
+            background-color: ${themeObj.primary} !important;
+          }
+          
+          html body .${styles.settingsForm} .ant-btn-primary {
+            background-color: ${themeObj.primary} !important;
+          }
+          
+          html body .${styles.settingsForm} .ant-btn:not(.ant-btn-primary) {
+            color: ${themeObj.primary} !important;
+          }
+          
+          html body .${styles.settingsForm} .${styles.validatingIndicator},
+          html body .${styles.settingsForm} .${styles.validatingIndicator} span {
+            color: ${themeObj.primary} !important;
+          }
+          
+          html body .${styles.settingsForm} .anticon-loading {
+            color: ${themeObj.primary} !important;
+          }
+        `;
+        document.head.appendChild(stylesheet);
+        
+        // 保存样式表引用以便稍后移除
+        if (window.previewStylesheet) {
+          document.head.removeChild(window.previewStylesheet);
+        }
+        window.previewStylesheet = stylesheet;
+      }
     }
     
     // 更新表单数据
     form.setFieldsValue({ theme: newTheme });
-    
-    // 不在选择主题时立即应用颜色变更，只是预览颜色
-    // 实际的颜色变更会在点击保存按钮时应用
   };
 
   // 处理温度滑块值变化
