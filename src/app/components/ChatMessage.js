@@ -3,7 +3,7 @@ import { UserOutlined, RobotOutlined } from '@ant-design/icons';
 import ReactMarkdown from 'react-markdown';
 import { useEffect, useState, memo, useMemo, useRef } from 'react';
 import styles from './ChatMessage.module.css';
-import { loadUserAvatar, getTheme, getThemeColor } from '../utils/storage';
+import { loadUserAvatar, getTheme, getThemeColor, AVAILABLE_THEMES } from '../utils/storage';
 import ClientOnly from './ClientOnly';
 
 const { Text, Paragraph } = Typography;
@@ -131,24 +131,39 @@ const ChatMessage = memo(({ message, isTyping }) => {
     
     // 添加CSS变量监听以实时响应主题变化
     const observeCSSVariableChanges = () => {
-      if (typeof window === 'undefined' || !window.MutationObserver) return;
+      if (typeof window === 'undefined' || !window.MutationObserver) return null;
       
       const targetNode = document.documentElement;
       const config = { attributes: true, attributeFilter: ['style'] };
       
-      const callback = () => {
-        // 当CSS变量变化时，强制重新获取主题
-        handleThemeChange();
+      const callback = (mutations) => {
+        for (const mutation of mutations) {
+          if (mutation.attributeName === 'style') {
+            // 当CSS变量变化时，获取新的主题色值
+            const root = document.documentElement;
+            const primaryColor = getComputedStyle(root).getPropertyValue('--primary-color').trim();
+            if (primaryColor) {
+              // 立即更新主题，不需要通过getTheme，直接响应CSS变量变化
+              setCurrentTheme(prev => {
+                // 如果主题色没变，则不触发更新
+                if (getThemeColor(prev) === primaryColor) return prev;
+                // 根据颜色值反查主题名
+                const themeEntry = AVAILABLE_THEMES.find(t => t.primary === primaryColor);
+                return themeEntry ? themeEntry.key : prev;
+              });
+            }
+          }
+        }
       };
       
       const observer = new MutationObserver(callback);
       observer.observe(targetNode, config);
       
-      return () => observer.disconnect();
+      return observer;
     };
     
     // 启动CSS变量监听
-    const unobserve = observeCSSVariableChanges();
+    const observer = observeCSSVariableChanges();
     
     window.addEventListener('storage', handleThemeChange);
     window.addEventListener('themeChange', handleThemeChange);
@@ -156,7 +171,7 @@ const ChatMessage = memo(({ message, isTyping }) => {
     return () => {
       window.removeEventListener('storage', handleThemeChange);
       window.removeEventListener('themeChange', handleThemeChange);
-      if (unobserve) unobserve();
+      if (observer) observer.disconnect();
     };
   }, []);
   
@@ -166,16 +181,17 @@ const ChatMessage = memo(({ message, isTyping }) => {
     const themeColor = getThemeColor(currentTheme);
     
     // 动态生成颜色变体
-    const lightThemeColor = `${themeColor}15`; // 更淡的颜色用于背景 (15% 透明度)
-    const mediumThemeColor = `${themeColor}25`; // 中等强度用于用户消息 (25% 透明度)
-    const borderThemeColor = `${themeColor}40`; // 中等强度用于边框 (40% 透明度)
-    const professorThemeColor = `${themeColor}10`; // 最淡的颜色用于教授消息 (10% 透明度)
+    const lightThemeColor = `${themeColor}20`; // 更淡的颜色用于背景 (20% 透明度)
+    const mediumThemeColor = `${themeColor}30`; // 中等强度用于用户消息 (30% 透明度)
+    const borderThemeColor = `${themeColor}50`; // 中等强度用于边框 (50% 透明度)
+    const professorThemeColor = `${themeColor}15`; // 最淡的颜色用于教授消息 (15% 透明度)
     
     return {
       // 用户气泡样式
       senderBubble: {
         backgroundColor: mediumThemeColor,
         border: `1px solid ${borderThemeColor}`,
+        boxShadow: `0 1px 3px ${themeColor}10`,
       },
       // 用户文本样式
       senderText: {
@@ -185,8 +201,8 @@ const ChatMessage = memo(({ message, isTyping }) => {
       receiverBubble: {
         backgroundColor: lightThemeColor,
         border: `1px solid ${borderThemeColor}`,
-        transition: 'background-color 0.3s ease',
-        willChange: 'contents', // 提示浏览器这个元素内容会改变
+        transition: 'background-color 0.3s ease, border-color 0.3s ease',
+        boxShadow: `0 2px 4px ${themeColor}10`,
       },
       // AI专家文本样式
       receiverText: {
@@ -196,8 +212,8 @@ const ChatMessage = memo(({ message, isTyping }) => {
       professorBubble: {
         backgroundColor: professorThemeColor,
         border: `1px solid ${borderThemeColor}`,
-        transition: 'background-color 0.3s ease',
-        willChange: 'contents', // 提示浏览器这个元素内容会改变
+        transition: 'background-color 0.3s ease, border-color 0.3s ease',
+        boxShadow: `0 1px 2px ${themeColor}10`,
       },
       // 教授文本样式
       professorText: {
@@ -272,56 +288,6 @@ const ChatMessage = memo(({ message, isTyping }) => {
       };
     }
   }, [message.text, message.isSender]);
-  
-  // 增强监听主题变化的能力
-  useEffect(() => {
-    // 初始化时获取主题
-    const theme = getTheme();
-    setCurrentTheme(theme);
-    
-    // 创建一个函数专门用于处理主题更新
-    const updateTheme = () => {
-      const newTheme = getTheme();
-      if (newTheme !== currentTheme) {
-        setCurrentTheme(newTheme);
-      }
-    };
-    
-    // 监听CSS变量变化 - 使用MutationObserver观察root样式变化
-    const observeCSSVars = () => {
-      if (typeof window === 'undefined' || !window.MutationObserver) return null;
-      
-      const observer = new MutationObserver((mutations) => {
-        for (const mutation of mutations) {
-          if (mutation.attributeName === 'style') {
-            // 当样式变化时，检查主题颜色是否变化
-            updateTheme();
-            break;
-          }
-        }
-      });
-      
-      observer.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ['style']
-      });
-      
-      return observer;
-    };
-    
-    // 启动观察者
-    const observer = observeCSSVars();
-    
-    // 监听storage变化和自定义themeChange事件
-    window.addEventListener('storage', updateTheme);
-    window.addEventListener('themeChange', updateTheme);
-    
-    return () => {
-      window.removeEventListener('storage', updateTheme);
-      window.removeEventListener('themeChange', updateTheme);
-      if (observer) observer.disconnect();
-    };
-  }, [currentTheme]);
   
   const getAvatar = (role) => {
     if (message.isSender) {

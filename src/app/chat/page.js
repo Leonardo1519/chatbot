@@ -420,7 +420,7 @@ export default function ChatPage() {
     }
   };
   
-  // 保存设置
+  // 处理保存设置
   const handleSaveSettings = (newSettings) => {
     // 检查API密钥是否发生变化
     const apiKeyChanged = settings.apiKey !== newSettings.apiKey;
@@ -451,6 +451,9 @@ export default function ChatPage() {
         `;
         document.head.appendChild(stylesheet);
         setTimeout(() => document.head.removeChild(stylesheet), 100);
+        
+        // 触发主题变化事件 - 确保所有组件都能接收到主题变化
+        window.dispatchEvent(new CustomEvent('themeChange'));
       }
     }
     

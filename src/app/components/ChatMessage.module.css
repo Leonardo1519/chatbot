@@ -30,6 +30,8 @@
   max-width: 70%;
   border-radius: 8px;
   overflow: hidden;
+  /* 为消息气泡添加过渡效果 */
+  transition: all 0.3s ease;
 }
 
 /* 用户消息气泡 */
@@ -50,7 +52,8 @@
 .messageContent {
   font-size: 14px;
   line-height: 1.5;
-  transition: background-color 0.3s ease-in-out;
+  /* 使消息内容背景色和边框颜色的变化更平滑 */
+  transition: all 0.3s ease-in-out;
   border-radius: 8px;
   padding: 12px;
   /* 固定最小尺寸以减少布局变化 */
@@ -60,23 +63,12 @@
   word-break: break-word;
   
   /* 优化渲染 */
-  -webkit-transform: translateZ(0);
   transform: translateZ(0);
-  will-change: contents;
-  contain: content;
-  content-visibility: auto;
-  
-  /* 减少重绘 */
-  -webkit-font-smoothing: antialiased;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   
   /* 创建层叠上下文，确保渲染隔离 */
   isolation: isolate;
-  
-  /* 强制创建新的渲染层，减少重绘，解决闪烁 */
-  transform: translate3d(0, 0, 0);
-  z-index: 1;
 }
 
 /* 防止列表和段落元素导致的布局变动 */
@@ -110,12 +102,13 @@
 /* 用户消息内容 - 背景色由JS动态设置 */
 .sender .messageContent {
   /* 背景色通过内联样式动态设置 */
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* IT专家消息内容 - 背景色由JS动态设置 */
 .receiver .messageContent {
   /* 背景色通过内联样式动态设置 */
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* 移除固定的文本颜色样式 */
@@ -131,12 +124,13 @@
 .receiver .messageContent code,
 .receiver .messageContent pre {
   /* 文本颜色由JS动态设置 */
-  transition: color 0.2s ease-in-out;
+  transition: color 0.3s ease-in-out;
 }
 
 /* 计算机教授消息内容 - 背景色由JS动态设置 */
 .professorMessage .messageContent {
   /* 背景色通过内联样式动态设置 */
+  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
 }
 
 /* 段落样式 */
