@@ -37,10 +37,10 @@ export default function Home() {
       <Content className={styles.content}>
         <div className={styles.center}>
           <Title level={2} className={styles.title}>
-            <RobotOutlined /> 卡皮巴拉AI助手
+            <RobotOutlined /> 卡皮巴拉小卡
           </Title>
           <Paragraph className={styles.description}>
-            欢迎使用卡皮巴拉AI助手，这是一个智能的对话系统，可以帮助你解答各种问题。
+            欢迎使用卡皮巴拉小卡，这是一个智能的对话系统，可以帮助你解答各种问题。
           </Paragraph>
           <Row gutter={[32, 32]} className={styles.features} justify="center" align="stretch">
             <Col xs={24} sm={24} md={8} lg={8} xl={8} style={{ width: '100%', maxWidth: '360px' }}>
@@ -54,7 +54,7 @@ export default function Home() {
               <Card className={styles.featureCard}>
                 <RobotOutlined className={styles.featureIcon} />
                 <Title level={4}>专业解答</Title>
-                <Paragraph>由IT专家和计算机教授提供专业的技术支持</Paragraph>
+                <Paragraph>提供专业、准确的知识解答和技术支持</Paragraph>
               </Card>
             </Col>
             <Col xs={24} sm={24} md={8} lg={8} xl={8} style={{ width: '100%', maxWidth: '360px' }}>

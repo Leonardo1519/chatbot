@@ -2,6 +2,7 @@
   --background: #f5f5f5;
   --foreground: #171717;
   --primary-color: #1890ff; /* 默认使用蓝色主题 */
+  --primary-color-rgb: 24, 144, 255; /* 默认蓝色RGB值 */
 }
 
 @media (prefers-color-scheme: dark) {
@@ -57,4 +58,154 @@ a {
 .ant-input-textarea textarea.ant-input:focus {
   border-color: #d9d9d9 !important;
   box-shadow: none !important;
+}
+
+/* Slider组件样式 - 使用主题色 */
+.ant-slider .ant-slider-track,
+.ant-slider:hover .ant-slider-track {
+  background-color: var(--primary-color) !important;
+}
+
+.ant-slider .ant-slider-handle,
+.ant-slider .ant-slider-handle:focus,
+.ant-slider:hover .ant-slider-handle:not(.ant-tooltip-open) {
+  border-color: var(--primary-color) !important;
+  background-color: var(--primary-color) !important;
+  box-shadow: none !important;
+}
+
+.ant-slider .ant-slider-handle:active {
+  border-color: var(--primary-color) !important;
+  box-shadow: none !important;
+}
+
+.ant-slider .ant-slider-dot-active {
+  border-color: var(--primary-color) !important;
+}
+
+/* 标记文字悬停时的样式 - 保持主题色 */
+.ant-slider-mark-text:hover ~ .ant-slider-handle,
+.ant-slider-mark-text:hover ~ .ant-slider-track {
+  border-color: var(--primary-color) !important;
+  box-shadow: none !important;
+  background-color: var(--primary-color) !important;
+}
+
+/* 更全面的选择器，确保标记区域悬停时滑块保持主题色 */
+.ant-slider-mark:hover ~ .ant-slider-handle,
+.ant-slider-mark:hover ~ .ant-slider-track {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  box-shadow: none !important;
+}
+
+/* 使用更直接的方式设置悬停效果 */
+.ant-slider:has(.ant-slider-mark:hover) .ant-slider-handle {
+  border-color: var(--primary-color) !important;
+  background-color: var(--primary-color) !important;
+  box-shadow: none !important;
+}
+
+/* 设置标记文字本身的悬停样式 */
+.ant-slider:hover .ant-slider-mark-text,
+.ant-slider-mark-text:hover {
+  color: rgba(0, 0, 0, 0.65) !important;
+  cursor: pointer;
+}
+
+/* 移除所有Slider滑块的高光效果，保持主题色 */
+.ant-slider-handle,
+.ant-slider-handle:focus,
+.ant-slider:hover .ant-slider-handle,
+.ant-slider-handle:active,
+.ant-slider-handle-click-focused,
+.ant-slider-handle-dragging {
+  box-shadow: none !important;
+  border-color: var(--primary-color) !important;
+  background-color: var(--primary-color) !important;
+}
+
+/* 滑块在所有状态下使用主题色 */
+.ant-slider:hover .ant-slider-handle,
+.ant-slider-handle:hover,
+.ant-slider-handle-click-focused,
+.ant-slider .ant-slider-handle.ant-tooltip-open {
+  border-color: var(--primary-color) !important;
+  background-color: var(--primary-color) !important;
+  box-shadow: none !important;
+}
+
+/* 确保悬停时滑块使用主题色 */
+.ant-slider .ant-slider-handle:hover {
+  border-color: var(--primary-color) !important;
+  background-color: var(--primary-color) !important;
+}
+
+/* 确保滑轨在所有交互状态下使用主题色 */
+.ant-slider:hover .ant-slider-track,
+.ant-slider-track:active,
+.ant-slider:active .ant-slider-track {
+  background-color: var(--primary-color) !important;
+}
+
+/* 悬停时保持滑轨底色不变 */
+.ant-slider:hover .ant-slider-rail {
+  background-color: #f0f0f0 !important;
+}
+
+/* 添加JS脚本修复标记文字悬停问题 */
+@media all {
+  /* 这个样式块会被注入JavaScript来检测和修复问题 */
+  body::after {
+    content: '';
+    display: none;
+  }
+}
+
+/* 注入到DOM的脚本 - 更新为使用主题色 */
+:root {
+  --script-fix: "try{if(typeof window!=='undefined'){window.addEventListener('DOMContentLoaded',function(){var markTexts=document.querySelectorAll('.ant-slider-mark-text');if(markTexts.length){markTexts.forEach(function(text){text.addEventListener('mouseenter',function(e){var slider=e.target.closest('.ant-slider');if(slider){slider.classList.add('mark-hovered');}});text.addEventListener('mouseleave',function(e){var slider=e.target.closest('.ant-slider');if(slider){slider.classList.remove('mark-hovered');}});});}var currentThemeColor=getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim()||'#1890ff';var style=document.createElement('style');style.textContent='.ant-slider.mark-hovered .ant-slider-handle, .ant-slider.mark-hovered .ant-slider-track{border-color:'+currentThemeColor+'!important;background-color:'+currentThemeColor+'!important;box-shadow:none!important;}';document.head.appendChild(style);})}}catch(e){console.error(e)}";
+}
+
+/* 在页面加载时执行脚本 */
+body::before {
+  content: var(--script-fix);
+  display: block;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
+}
+
+/* 聊天界面相关样式 - 使用主题色 */
+.ant-btn-primary {
+  background-color: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+}
+
+.ant-btn-primary:hover, 
+.ant-btn-primary:focus {
+  background-color: var(--primary-color) !important;
+  opacity: 0.9;
+  border-color: var(--primary-color) !important;
+}
+
+/* 聊天会话项目激活状态 */
+.session-item-active {
+  background-color: rgba(var(--primary-color-rgb, 24, 144, 255), 0.1) !important;
+}
+
+/* 根据主题色自动更新RGB变量的脚本 */
+:root {
+  --theme-color-script: "try{if(typeof window!=='undefined'){window.addEventListener('DOMContentLoaded',function(){function updateRgbVar(){var primaryColor=getComputedStyle(document.documentElement).getPropertyValue('--primary-color').trim()||'#1890ff';var rgbValues=hexToRgb(primaryColor)||'24, 144, 255';document.documentElement.style.setProperty('--primary-color-rgb',rgbValues);}function hexToRgb(hex){hex=hex.replace(/^#/,'');var bigint=parseInt(hex,16);var r=(bigint>>16)&255;var g=(bigint>>8)&255;var b=bigint&255;return r+', '+g+', '+b;}updateRgbVar();var observer=new MutationObserver(function(mutations){mutations.forEach(function(mutation){if(mutation.attributeName==='style'){updateRgbVar();}});});observer.observe(document.documentElement,{attributes:true,attributeFilter:['style']});})}}catch(e){console.error(e)}";
+}
+
+/* 执行RGB转换脚本 */
+body::after {
+  content: var(--theme-color-script);
+  display: block;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+  visibility: hidden;
 }

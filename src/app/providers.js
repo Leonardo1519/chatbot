@@ -104,6 +104,29 @@ export function Providers({ children }) {
                 activeBorderColor: '#d9d9d9',
                 hoverBorderColor: '#d9d9d9',
               },
+              Slider: {
+                // 将Slider组件的颜色改为主题色相关色值
+                railBg: '#f0f0f0',          // 轨道背景色
+                railHoverBg: '#f0f0f0',     // 轨道悬停背景色
+                trackBg: primaryColor,      // 已选择轨道的背景色，使用主题色
+                trackHoverBg: primaryColor, // 已选择轨道的悬停背景色，使用主题色
+                handleColor: primaryColor,  // 滑块颜色，使用主题色
+                handleActiveColor: primaryColor, // 滑块激活颜色，使用主题色
+                dotActiveBorderColor: primaryColor, // 点激活边框颜色，使用主题色
+                dotBorderColor: '#d9d9d9',  // 点边框颜色
+                // 标记文字相关样式
+                markTextColor: 'rgba(0, 0, 0, 0.65)', // 标记文字颜色
+                markTextColorActive: 'rgba(0, 0, 0, 0.85)', // 激活状态的标记文字颜色
+                // 去掉滑块高光
+                handleShadow: 'none',       // 滑块阴影
+                handleActiveShadow: 'none', // 滑块激活状态阴影
+                // 确保滑块背景色正确响应悬停
+                handleBg: primaryColor,     // 滑块背景色，使用主题色
+                handleHoverBg: primaryColor,// 滑块悬停背景色，使用主题色
+                handleActiveBg: primaryColor,// 滑块激活状态背景色，使用主题色
+                // 禁用状态的颜色
+                trackBgDisabled: 'rgba(0, 0, 0, 0.04)', // 禁用状态下的轨道背景色
+              },
             }
           }}
         >

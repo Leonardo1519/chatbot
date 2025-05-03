@@ -5,8 +5,8 @@ import './globals.css';
 const inter = Inter({ subsets: ['latin'] });
 
 export const metadata = {
-  title: '卡皮巴拉AI助手',
-  description: '智能对话系统',
+  title: '卡皮巴拉小卡',
+  description: '一个高级聊天对话助手',
 };
 
 export default function RootLayout({ children }) {

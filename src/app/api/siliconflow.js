@@ -83,7 +83,7 @@ export async function sendMessage(apiKey, messages, model = 'deepseek-ai/DeepSee
       messages: [
         {
           role: 'system',
-          content: '你将扮演两个角色进行回答：\n\n1. 首先，你是一位专业的IT专家，擅长软件开发和算法设计。你可以提供以下方面的专业建议：\n- 软件架构设计\n- 编程语言选择\n- 算法优化\n- 代码审查\n- 技术选型\n- 性能优化\n- 安全最佳实践\n- 开发工具推荐\n\n2. 之后，你将以计算机专业教授的身份，对上述IT专家的回答进行点评和补充。作为教授，你的特点是:\n- 学术严谨，关注理论基础\n- 有丰富的教学和研究经验\n- 能够从更高层次和教育视角点评\n- 补充前沿学术研究和教育建议\n\n回答格式要求：\n1. 先以【IT专家】标记开始，给出IT专家的回答\n2. 然后以【计算机教授点评】标记开始，给出教授的点评\n3. 使用 Markdown 格式进行回答\n4. 使用 #、##、### 等标记来区分标题层级\n5. 使用 * 或 - 来创建无序列表\n6. 使用 1.、2.、3. 等来创建有序列表\n7. 使用 ``` 来创建代码块\n8. 使用 * 或 _ 来强调重要内容\n9. 使用 > 来引用重要内容\n10. 使用空行来分隔段落\n\n示例格式：\n\n【IT专家】\n# 关于技术选型的建议\n\n## 对比分析\n\n这是IT专家的回答内容。\n\n【计算机教授点评】\n# 从教育角度的补充\n\n我认为IT专家的建议很好，但还可以考虑...\n\n请使用上述格式来组织你的回答，使内容更加清晰易读。'
+          content: '你是一位专业的小卡，擅长软件开发和算法设计。你可以提供以下方面的专业建议：\n- 软件架构设计\n- 编程语言选择\n- 算法优化\n- 代码审查\n- 技术选型\n- 性能优化\n- 安全最佳实践\n- 开发工具推荐\n\n回答格式要求：\n1. 使用 Markdown 格式进行回答\n2. 使用 #、##、### 等标记来区分标题层级\n3. 使用 * 或 - 来创建无序列表\n4. 使用 1.、2.、3. 等来创建有序列表\n5. 使用 ``` 来创建代码块\n6. 使用 * 或 _ 来强调重要内容\n7. 使用 > 来引用重要内容\n8. 使用空行来分隔段落\n\n请使用上述格式来组织你的回答，使内容更加清晰易读。'
         },
         ...messages.map(msg => ({
           role: msg.isSender ? 'user' : 'assistant',
@@ -142,7 +142,7 @@ export async function streamMessage(apiKey, messages, onChunk, onComplete, onErr
       messages: [
         {
           role: 'system',
-          content: '你将扮演两个角色进行回答：\n\n1. 首先，你是一位专业的IT专家，擅长软件开发和算法设计。你可以提供以下方面的专业建议：\n- 软件架构设计\n- 编程语言选择\n- 算法优化\n- 代码审查\n- 技术选型\n- 性能优化\n- 安全最佳实践\n- 开发工具推荐\n\n2. 之后，你将以计算机专业教授的身份，对上述IT专家的回答进行点评和补充。作为教授，你的特点是:\n- 学术严谨，关注理论基础\n- 有丰富的教学和研究经验\n- 能够从更高层次和教育视角点评\n- 补充前沿学术研究和教育建议\n\n回答格式要求：\n1. 先以【IT专家】标记开始，给出IT专家的回答\n2. 然后以【计算机教授点评】标记开始，给出教授的点评\n3. 使用 Markdown 格式进行回答\n4. 使用 #、##、### 等标记来区分标题层级\n5. 使用 * 或 - 来创建无序列表\n6. 使用 1.、2.、3. 等来创建有序列表\n7. 使用 ``` 来创建代码块\n8. 使用 * 或 _ 来强调重要内容\n9. 使用 > 来引用重要内容\n10. 使用空行来分隔段落\n\n示例格式：\n\n【IT专家】\n# 关于技术选型的建议\n\n## 对比分析\n\n这是IT专家的回答内容。\n\n【计算机教授点评】\n# 从教育角度的补充\n\n我认为IT专家的建议很好，但还可以考虑...\n\n请使用上述格式来组织你的回答，使内容更加清晰易读。'
+          content: '你是一位专业的小卡，擅长软件开发和算法设计。你可以提供以下方面的专业建议：\n- 软件架构设计\n- 编程语言选择\n- 算法优化\n- 代码审查\n- 技术选型\n- 性能优化\n- 安全最佳实践\n- 开发工具推荐\n\n回答格式要求：\n1. 使用 Markdown 格式进行回答\n2. 使用 #、##、### 等标记来区分标题层级\n3. 使用 * 或 - 来创建无序列表\n4. 使用 1.、2.、3. 等来创建有序列表\n5. 使用 ``` 来创建代码块\n6. 使用 * 或 _ 来强调重要内容\n7. 使用 > 来引用重要内容\n8. 使用空行来分隔段落\n\n请使用上述格式来组织你的回答，使内容更加清晰易读。'
         },
         ...messages.map(msg => ({
           role: msg.isSender ? 'user' : 'assistant',
@@ -157,8 +157,15 @@ export async function streamMessage(apiKey, messages, onChunk, onComplete, onErr
     let fullResponse = '';
     let buffer = '';
     let lastCallTime = Date.now();
-    const bufferThreshold = 15; // 每累积15个字符才触发一次
-    const timeThreshold = 100; // 至少间隔100ms触发一次
+    
+    // 优化参数设置 - 增大阈值来减少UI更新频率
+    const bufferThreshold = 30; // 增大缓冲区大小，大幅减少UI更新频率
+    const timeThreshold = 250; // 增加时间阈值，确保更新间隔更长
+    
+    // 处理特殊标记的状态变量
+    let hasSpecialChars = false;
+    let markdownBlockOpen = false;
+    let lastMdSyntaxTime = 0;
     
     for await (const chunk of stream) {
       const content = chunk.choices[0]?.delta?.content || '';
@@ -166,11 +173,38 @@ export async function streamMessage(apiKey, messages, onChunk, onComplete, onErr
       buffer += content;
       
       const now = Date.now();
-      // 只有累积了足够的字符或者过了足够的时间才触发回调
-      if (buffer.length >= bufferThreshold || now - lastCallTime >= timeThreshold) {
+      
+      // 检查特殊Markdown语法
+      if (/[#*`_~\[\](){}>!\-+\n]/.test(content)) {
+        hasSpecialChars = true;
+        lastMdSyntaxTime = now;
+      }
+      
+      // 检测代码块开始/结束
+      if (content.includes('```')) {
+        markdownBlockOpen = !markdownBlockOpen;
+        // 代码块状态变化时立即更新
         onChunk(buffer);
         buffer = '';
         lastCallTime = now;
+        continue;
+      }
+      
+      // 触发更新的条件：
+      // 1. 缓冲区足够大
+      // 2. 时间间隔足够长
+      // 3. 检测到Markdown语法且积累了足够的缓冲
+      // 4. 减少所有更新频率，特别是代码块内部
+      const shouldUpdate = 
+        buffer.length >= bufferThreshold ||
+        now - lastCallTime >= timeThreshold || 
+        (hasSpecialChars && buffer.length > 8 && now - lastMdSyntaxTime < 150); // 增加更新阈值
+      
+      if (shouldUpdate) {
+        onChunk(buffer);
+        buffer = '';
+        lastCallTime = now;
+        hasSpecialChars = false;
       }
     }
     
@@ -179,6 +213,7 @@ export async function streamMessage(apiKey, messages, onChunk, onComplete, onErr
       onChunk(buffer);
     }
     
+    // 确保最终响应完整
     onComplete(fullResponse);
     return { success: true };
   } catch (error) {

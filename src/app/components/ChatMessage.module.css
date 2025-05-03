@@ -39,21 +39,20 @@
   border: none;
 }
 
-/* IT专家消息气泡 */
+/* 小卡消息气泡 */
 .receiver {
   border: none;
+  padding-left: 5px;
+  width: 100%;
 }
 
-/* 计算机教授消息气泡 */
-.professorMessage {
-  border: none;
-}
+
 
 .messageContent {
   font-size: 14px;
   line-height: 1.5;
-  /* 使消息内容背景色和边框颜色的变化更平滑 */
-  transition: all 0.3s ease-in-out;
+  /* 彻底移除过渡动画 */
+  transition: none !important;
   border-radius: 8px;
   padding: 12px;
   /* 固定最小尺寸以减少布局变化 */
@@ -63,12 +62,15 @@
   word-break: break-word;
   
   /* 优化渲染 */
-  transform: translateZ(0);
+  transform: translate3d(0,0,0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
   
   /* 创建层叠上下文，确保渲染隔离 */
   isolation: isolate;
+  
+  /* 防止任何动画 */
+  animation: none !important;
 }
 
 /* 防止列表和段落元素导致的布局变动 */
@@ -99,39 +101,37 @@
   will-change: auto;
 }
 
-/* 用户消息内容 - 背景色由JS动态设置 */
+/* 用户消息内容 - 使用主题色变量的RGB值 */
 .sender .messageContent {
-  /* 背景色通过内联样式动态设置 */
-  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  background-color: rgba(var(--primary-color-rgb), 0.1) !important;
+  border: none !important;
+  transition: background-color 0.3s ease;
 }
 
-/* IT专家消息内容 - 背景色由JS动态设置 */
-.receiver .messageContent {
-  /* 背景色通过内联样式动态设置 */
-  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+/* 小卡消息内容 */
+.receiver .messageContentWrapper {
+  color: #000000;
+  background-color: #ffffff;
+  transition: all 0.3s ease;
 }
 
-/* 移除固定的文本颜色样式 */
-.receiver .messageContent p,
-.receiver .messageContent li,
-.receiver .messageContent h1,
-.receiver .messageContent h2,
-.receiver .messageContent h3,
-.receiver .messageContent h4,
-.receiver .messageContent h5,
-.receiver .messageContent h6,
-.receiver .messageContent span,
-.receiver .messageContent code,
-.receiver .messageContent pre {
-  /* 文本颜色由JS动态设置 */
-  transition: color 0.3s ease-in-out;
+/* 消息内容文本样式 */
+.receiver .messageContentWrapper p,
+.receiver .messageContentWrapper li,
+.receiver .messageContentWrapper h1,
+.receiver .messageContentWrapper h2,
+.receiver .messageContentWrapper h3,
+.receiver .messageContentWrapper h4,
+.receiver .messageContentWrapper h5,
+.receiver .messageContentWrapper h6,
+.receiver .messageContentWrapper span,
+.receiver .messageContentWrapper code,
+.receiver .messageContentWrapper pre {
+  color: #000000;
+  transition: opacity 0.3s ease-in-out;
 }
 
-/* 计算机教授消息内容 - 背景色由JS动态设置 */
-.professorMessage .messageContent {
-  /* 背景色通过内联样式动态设置 */
-  transition: background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-}
+
 
 /* 段落样式 */
 .paragraph {
@@ -180,10 +180,9 @@
 
 /* 引用样式 */
 .blockquote {
-  border-left: 4px solid rgba(0, 0, 0, 0.1);
+  border-left: 4px solid var(--primary-color);
   margin: 0.5em 0;
   padding-left: 1em;
-  /* 颜色由JS动态设置 */
 }
 
 /* 发送者消息的特殊样式 */
@@ -193,8 +192,7 @@
 }
 
 .sender .blockquote {
-  border-left-color: rgba(255, 255, 255, 0.3);
-  /* 颜色由JS动态设置 */
+  border-left-color: var(--primary-color);
 }
 
 .typingIndicator {
@@ -219,15 +217,8 @@
   40% { transform: scale(1); }
 }
 
-/* 保留教授消息的其他特性 */
-.professorMessage .heading {
-  /* 使用当前主题色由JS控制 */
-}
 
-.professorMessage blockquote {
-  border-left-color: transparent;
-  background-color: rgba(0, 0, 0, 0.03);
-}
+
 
 /* 响应式调整 */
 @media (max-width: 768px) {
@@ -238,42 +229,100 @@
   /* 移除对after伪元素的样式调整 */
 }
 
-/* 稳定内容样式，减少重绘 */
-.stableContent {
-  /* 更简单的渲染优化方案 */
+/* Markdown容器样式 */
+.markdownContainer {
+  position: relative;
   transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  
-  /* 确保平滑过渡 */
-  opacity: 1;
-  transition: opacity 0.05s ease-in-out;
-  
-  /* 优化文本渲染 */
-  text-rendering: optimizeSpeed;
-  -webkit-font-smoothing: antialiased;
-  
-  /* 硬件加速渲染 */
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  
-  /* 阻止子元素导致的重排 */
   contain: content;
+  margin: 0;
+  padding: 0;
   
-  /* 强制创建新的渲染层，解决闪烁问题 */
-  transform: translate3d(0, 0, 0);
+  /* 消除渲染闪烁的关键属性 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  font-feature-settings: "kern";
+  
+  /* 防止任何动画和过渡效果 */
+  transition: none !important;
+  animation: none !important;
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+  
+  /* 提高渲染性能 */
+  isolation: isolate;
   z-index: 1;
+  
+  /* 确保文本清晰 */
+  letter-spacing: 0;
+  word-spacing: normal;
+  
+  /* 新增属性防止闪烁 */
+  will-change: auto; /* 避免过度使用willChange */
+  overflow-wrap: break-word;
+  word-break: break-word;
 }
 
-/* 非稳定状态下的内容 */
-.unstableContent {
-  opacity: 0.98;
+/* 消息内容包装器样式 */
+.messageContentWrapper {
   transform: translateZ(0);
-  -webkit-transform: translateZ(0);
-  transition: none;
-  will-change: contents;
-  
-  /* 减少闪烁的其他属性 */
+  contain: content;
+  transform-style: flat;
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  transform: translate3d(0, 0, 0);
+  perspective: none;
+  opacity: 1;
+  
+  /* 消除渲染闪烁的关键属性 */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  
+  /* 固定尺寸约束，减少布局变化 */
+  min-height: 24px;
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  
+  /* 防止任何动画和过渡效果 */
+  transition: none !important;
+  animation: none !important;
+  animation-duration: 0s !important;
+  transition-duration: 0s !important;
+  isolation: isolate;
+  z-index: 1;
+  
+  /* 字体渲染优化 */
+  letter-spacing: 0;
+  word-spacing: normal;
+  
+  /* 新增属性以提高稳定性 */
+  will-change: auto;
+  overflow-wrap: break-word;
+  word-break: break-word;
+}
+
+/* 防止文本内内容变化导致的布局抖动 */
+.paragraph,
+.heading,
+.list,
+.listItem,
+.code,
+.pre,
+.blockquote {
+  text-wrap: pretty;
+  overflow-wrap: break-word;
+  word-break: break-word;
+  margin-bottom: 0.5em;
+  transition: none !important;
+  animation: none !important;
+}
+
+/* 打字指示器样式 */
+.typingIndicatorContainer {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
 } 

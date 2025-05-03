@@ -12,25 +12,39 @@ const { Text, Paragraph } = Typography;
 const MarkdownContent = memo(({ content }) => {
   const markdownRef = useRef(null);
   
-  // 渐进式渲染，减少视觉闪烁
-  useEffect(() => {
-    if (markdownRef.current) {
-      markdownRef.current.style.opacity = '0';
-      requestAnimationFrame(() => {
-        if (markdownRef.current) {
-          markdownRef.current.style.opacity = '1';
-        }
-      });
-    }
-  }, [content]);
-  
+  // 使用硬件加速和GPU渲染优化
   return (
     <ClientOnly>
-      <div ref={markdownRef} style={{ transition: 'opacity 0.05s ease-in-out' }}>
+      <div 
+        ref={markdownRef} 
+        className={styles.markdownContainer}
+        style={{
+          transform: 'translateZ(0)', // 修改为更标准的3D变换
+          willChange: 'auto', // 改为auto，避免过度使用willChange
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          // 使用更现代的内容控制方式
+          contain: 'content',
+          // 移除contentVisibility，它可能导致闪烁
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          // 防止任何动画效果引起的闪烁
+          transition: 'none',
+          transitionProperty: 'none',
+          animation: 'none',
+          // 阻止子元素重绘引起的闪烁
+          isolation: 'isolate',
+          // 添加新的稳定性属性
+          height: 'auto',
+          position: 'static',
+          overflowWrap: 'break-word',
+          wordBreak: 'break-word',
+        }}
+      >
         <ReactMarkdown
           components={{
             p: ({ children }) => (
-              <Paragraph className={styles.paragraph}>
+              <Paragraph className={styles.paragraph} style={{margin: '0.5em 0'}}>
                 {children}
               </Paragraph>
             ),
@@ -90,6 +104,12 @@ const MarkdownContent = memo(({ content }) => {
                 {children}
               </blockquote>
             ),
+            // 配置链接在新窗口打开, 移除linkTarget属性
+            a: ({ node, children, href }) => (
+              <a href={href} target="_blank" rel="noopener noreferrer">
+                {children}
+              </a>
+            ),
           }}
         >
           {content}
@@ -97,6 +117,31 @@ const MarkdownContent = memo(({ content }) => {
       </div>
     </ClientOnly>
   );
+}, (prevProps, nextProps) => {
+  // 完全相同内容直接跳过渲染更新
+  if (prevProps.content === nextProps.content) return true;
+  
+  // 确保内容只是在增加（流式输出情况）
+  if (nextProps.content.startsWith(prevProps.content)) {
+    const additionalContent = nextProps.content.slice(prevProps.content.length);
+    
+    // 设置固定更新频率，优化渲染性能与视觉效果的平衡
+    const minUpdateLength = 10; // 固定每至少10个字符更新一次
+    
+    // 当新增内容小于阈值时不更新，除非包含特殊MD标记
+    if (additionalContent.length < minUpdateLength && 
+        !/[#*`_~\[\](){}>\-+\n]/.test(additionalContent)) {
+      return true; // 跳过更新
+    }
+    
+    // 检测到Markdown标记字符时总是更新，确保格式正确渲染
+    if (/[#*`_~\[\](){}>\-+\n]/.test(additionalContent)) {
+      return false; // 强制更新
+    }
+  }
+  
+  // 默认允许更新
+  return false;
 });
 
 // 添加displayName以方便调试
@@ -105,12 +150,16 @@ MarkdownContent.displayName = 'MarkdownContent';
 // 使用memo优化整个ChatMessage组件
 const ChatMessage = memo(({ message, isTyping }) => {
   const [userAvatar, setUserAvatar] = useState(null);
-  const [expertContent, setExpertContent] = useState('');
-  const [professorContent, setProfessorContent] = useState('');
+  const [aiContent, setAIContent] = useState('');
   const [currentTheme, setCurrentTheme] = useState('');
   const [contentStable, setContentStable] = useState(false);
   const contentRef = useRef('');
   const prevContentLengthRef = useRef(0);
+  
+  // 调试日志，查看主题变化
+  useEffect(() => {
+    console.log("当前主题:", currentTheme);
+  }, [currentTheme]);
   
   // 加载用户头像和主题
   useEffect(() => {
@@ -119,14 +168,28 @@ const ChatMessage = memo(({ message, isTyping }) => {
       setUserAvatar(savedAvatar);
     }
     
+    // 监听头像变更事件
+    const handleAvatarChange = (event) => {
+      // 不再从event.detail中获取头像，而是直接从localStorage加载
+      // 这确保只有在点击保存按钮后才会更新头像
+      const updatedAvatar = loadUserAvatar();
+      if (updatedAvatar) {
+        setUserAvatar(updatedAvatar);
+      }
+    };
+    
     // 获取当前主题
     const theme = getTheme();
     setCurrentTheme(theme);
     
     // 监听主题变化
     const handleThemeChange = () => {
+      console.log('主题变化被触发');
       const newTheme = getTheme();
       setCurrentTheme(newTheme);
+      
+      // 强制重新渲染
+      setContentStable(prev => !prev);
     };
     
     // 添加CSS变量监听以实时响应主题变化
@@ -151,6 +214,9 @@ const ChatMessage = memo(({ message, isTyping }) => {
                 const themeEntry = AVAILABLE_THEMES.find(t => t.primary === primaryColor);
                 return themeEntry ? themeEntry.key : prev;
               });
+              
+              // 强制重新渲染
+              setContentStable(prev => !prev);
             }
           }
         }
@@ -165,12 +231,15 @@ const ChatMessage = memo(({ message, isTyping }) => {
     // 启动CSS变量监听
     const observer = observeCSSVariableChanges();
     
+    // 添加事件监听
     window.addEventListener('storage', handleThemeChange);
     window.addEventListener('themeChange', handleThemeChange);
+    window.addEventListener('avatarChange', handleAvatarChange);
     
     return () => {
       window.removeEventListener('storage', handleThemeChange);
       window.removeEventListener('themeChange', handleThemeChange);
+      window.removeEventListener('avatarChange', handleAvatarChange);
       if (observer) observer.disconnect();
     };
   }, []);
@@ -180,46 +249,34 @@ const ChatMessage = memo(({ message, isTyping }) => {
     // 获取主题颜色
     const themeColor = getThemeColor(currentTheme);
     
-    // 动态生成颜色变体
-    const lightThemeColor = `${themeColor}20`; // 更淡的颜色用于背景 (20% 透明度)
-    const mediumThemeColor = `${themeColor}30`; // 中等强度用于用户消息 (30% 透明度)
-    const borderThemeColor = `${themeColor}50`; // 中等强度用于边框 (50% 透明度)
-    const professorThemeColor = `${themeColor}15`; // 最淡的颜色用于教授消息 (15% 透明度)
+    // 将十六进制颜色转换为RGB数组
+    const hexToRgb = (hex) => {
+      const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+      const formattedHex = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
+      const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(formattedHex);
+      return result ? 
+        [parseInt(result[1], 16), parseInt(result[2], 16), parseInt(result[3], 16)] : 
+        [24, 144, 255]; // 默认蓝色RGB
+    };
+    
+    const rgbArray = hexToRgb(themeColor);
     
     return {
-      // 用户气泡样式
+      // 用户气泡样式 - 使用主题色的淡化背景
       senderBubble: {
-        backgroundColor: mediumThemeColor,
-        border: `1px solid ${borderThemeColor}`,
-        boxShadow: `0 1px 3px ${themeColor}10`,
+        backgroundColor: `rgba(${rgbArray[0]}, ${rgbArray[1]}, ${rgbArray[2]}, 0.1)`,
+        boxShadow: `0 1px 3px rgba(0, 0, 0, 0.1)`,
+        border: 'none'
       },
       // 用户文本样式
       senderText: {
         color: '#000000',
       },
-      // AI专家气泡样式
-      receiverBubble: {
-        backgroundColor: lightThemeColor,
-        border: `1px solid ${borderThemeColor}`,
-        transition: 'background-color 0.3s ease, border-color 0.3s ease',
-        boxShadow: `0 2px 4px ${themeColor}10`,
-      },
       // AI专家文本样式
       receiverText: {
         color: '#000000',
       },
-      // 教授气泡样式
-      professorBubble: {
-        backgroundColor: professorThemeColor,
-        border: `1px solid ${borderThemeColor}`,
-        transition: 'background-color 0.3s ease, border-color 0.3s ease',
-        boxShadow: `0 1px 2px ${themeColor}10`,
-      },
-      // 教授文本样式
-      professorText: {
-        color: '#000000',
-      },
-      // 输入指示器点样式
+      // 输入指示器点样式 - 使用主题色
       dot: {
         backgroundColor: themeColor
       }
@@ -235,119 +292,112 @@ const ChatMessage = memo(({ message, isTyping }) => {
         
         // 检查内容是否发生变化，避免不必要的更新
         if (contentRef.current !== newText) {
-          // 拆分消息内容
-          const parts = newText.split('【计算机教授点评】');
-          if (parts.length > 1) {
-            // 删除IT专家标签
-            const expertPart = parts[0].replace('【IT专家】', '').trim();
-            setExpertContent(expertPart);
-            setProfessorContent(parts[1].trim());
-          } else {
-            // 如果没有找到分隔符，就把全部内容都设为IT专家的
-            setExpertContent(newText.replace('【IT专家】', '').trim());
-            setProfessorContent('');
-          }
+          // 直接处理消息内容
+          setAIContent(newText.trim());
           
           // 更新引用内容
           contentRef.current = newText;
           
-          // 取消之前计划的所有状态更新
-          if (window.rafId) {
-            cancelAnimationFrame(window.rafId);
-          }
-          
-          // 只有当内容大幅变化时才触发稳定性处理
-          const lengthDiff = Math.abs(newText.length - prevContentLengthRef.current);
-          if (lengthDiff > 50) {
-            // 使用单个requestAnimationFrame
-            window.rafId = requestAnimationFrame(() => {
-              // 设置为不稳定状态的时间很短，几乎察觉不到
-              setContentStable(false);
-              
-              // 立即在下一帧恢复稳定
-              window.rafId = requestAnimationFrame(() => {
-                prevContentLengthRef.current = newText.length;
-                setContentStable(true);
-              });
-            });
-          } else {
-            prevContentLengthRef.current = newText.length;
-          }
+          // 始终保持稳定状态，避免状态切换引起的闪烁
+          setContentStable(true);
+          prevContentLengthRef.current = newText.length;
         }
       };
       
-      // 使用防抖处理，减少处理频率
-      const debounceTime = 80; // 80ms防抖
-      const timeoutId = setTimeout(handleContent, debounceTime);
-      
-      return () => {
-        clearTimeout(timeoutId);
-        if (window.rafId) {
-          cancelAnimationFrame(window.rafId);
-        }
-      };
+      // 直接处理内容，不使用延迟
+      handleContent();
     }
   }, [message.text, message.isSender]);
   
-  const getAvatar = (role) => {
+  const getAvatar = () => {
     if (message.isSender) {
       return userAvatar 
         ? <Avatar src={userAvatar} size={40} /> 
         : <Avatar icon={<UserOutlined />} size={40} />;
     }
-    if (role === 'professor') {
-      return (
-        <Avatar
-          src="/avatars/Capybara-2.jpg"
-          alt="计算机教授"
-          size={40}
-        />
-      );
-    }
     return (
       <Avatar
         src="/avatars/Capybara-1.jpg"
-        alt="IT专家"
+        alt="小卡"
         size={40}
       />
     );
   };
 
-  const getRoleLabel = (role) => {
+  const getRoleLabel = () => {
     if (message.isSender) return '用户';
-    if (role === 'professor') return '计算机教授';
-    return 'IT专家';
+    return '小卡';
   };
 
   // 给MarkdownContent组件添加样式
   const MarkdownContentWithStyle = memo(({ content, textStyle }) => {
-    // 计算字符数估算高度，减少布局变化导致的闪烁
-    const estimatedHeight = useMemo(() => {
-      if (!content) return 'auto';
-      // 粗略估算：每40个字符一行，每行20px高度
-      const charCount = content.length;
-      const lines = charCount / 40;
-      const baseHeight = Math.max(24, lines * 20);
-      
-      // 添加额外空间以适应Markdown格式
-      const extraSpace = content.includes('```') ? 100 : 0;
-      return `${baseHeight + extraSpace}px`;
-    }, [content]);
-    
+    // 使用硬件加速和稳定渲染技术
     return (
       <div 
         style={{
           ...textStyle,
-          transform: 'translateZ(0)',
-          transition: 'opacity 0.05s ease-in-out',
+          transform: 'translateZ(0)', 
           position: 'relative',
-          minHeight: estimatedHeight,
+          minHeight: '24px',
+          // 更优化的内容控制
+          contain: 'content', 
+          // 移除可能引起闪烁的contentVisibility
+          // 完全移除任何可能的动画和过渡效果
+          animation: 'none',
+          animationDuration: '0s',
+          transition: 'none',
+          transitionDuration: '0s',
+          backfaceVisibility: 'hidden',
+          WebkitBackfaceVisibility: 'hidden',
+          WebkitFontSmoothing: 'antialiased',
+          MozOsxFontSmoothing: 'grayscale',
+          pointerEvents: content ? 'auto' : 'none',
+          // 添加下列稳定性属性防止布局变动
+          overflowWrap: 'break-word',
+          wordBreak: 'break-word',
+          boxSizing: 'border-box',
+          // 强制文本渲染稳定
+          textRendering: 'optimizeSpeed',
+          // 禁用GPU合成层动画
+          willChange: 'auto',
         }} 
-        className={`${contentStable ? styles.stableContent : styles.unstableContent}`}
+        className={styles.messageContentWrapper}
       >
         <MarkdownContent content={content} />
       </div>
     );
+  }, (prevProps, nextProps) => {
+    // 内容完全相同，不需要重新渲染
+    if (prevProps.content === nextProps.content) {
+      return true;
+    }
+    
+    // 空内容检查
+    if (!prevProps.content || !nextProps.content) {
+      return prevProps.content === nextProps.content;
+    }
+    
+    // 只处理增量更新场景（流式输出）
+    if (nextProps.content.startsWith(prevProps.content)) {
+      // 新内容比旧内容多出的字符
+      const newContent = nextProps.content.slice(prevProps.content.length);
+      
+      // 固定更新策略：每10字符更新一次，但遇到Markdown控制字符时立即更新
+      const hasMarkdownSyntax = /[#*`_~\[\](){}>!\-+\n]/.test(newContent);
+      
+      // 当增量内容足够小且不包含特殊语法时跳过更新
+      if (newContent.length < 10 && !hasMarkdownSyntax) {
+        return true; // 跳过当前渲染
+      }
+      
+      // 当有特殊Markdown语法字符时强制渲染
+      if (hasMarkdownSyntax) {
+        return false; // 强制渲染
+      }
+    }
+    
+    // 默认允许更新
+    return false;
   });
   
   MarkdownContentWithStyle.displayName = 'MarkdownContentWithStyle';
@@ -377,60 +427,31 @@ const ChatMessage = memo(({ message, isTyping }) => {
     );
   }
   
-  // 如果是AI回复，显示IT专家和教授的回复（如果有）
+  // 如果是AI回复，显示小卡回复
   return (
-    <>
-      {/* IT专家回复 */}
-      <div className={`${styles.messageContainer} ${styles.receiverContainer}`}>
-        <div className={styles.avatarContainer}>
-          {getAvatar('expert')}
-          <Text 
-            type="secondary" 
-            className={styles.roleLabel}
-          >
-            {getRoleLabel('expert')}
-          </Text>
-        </div>
-        <div className={`${styles.message} ${styles.receiver}`}>
-          <div 
-            className={`${styles.messageContent}`}
-            style={themeStyles.receiverBubble}
-          >
-            <MarkdownContentWithStyle content={expertContent} textStyle={themeStyles.receiverText} />
-          </div>
-          {isTyping && (
+    <div className={`${styles.messageContainer} ${styles.receiverContainer}`}>
+      <div className={styles.avatarContainer}>
+        {getAvatar()}
+        <Text 
+          type="secondary" 
+          className={styles.roleLabel}
+        >
+          {getRoleLabel()}
+        </Text>
+      </div>
+      <div className={`${styles.message} ${styles.receiver}`}>
+        <MarkdownContentWithStyle content={aiContent} textStyle={themeStyles.receiverText} />
+        {isTyping && (
+          <div className={styles.typingIndicatorContainer}>
             <span className={styles.typingIndicator}>
               <span className={styles.dot} style={themeStyles.dot}></span>
               <span className={styles.dot} style={themeStyles.dot}></span>
               <span className={styles.dot} style={themeStyles.dot}></span>
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </div>
-      
-      {/* 如果有教授点评，则显示 */}
-      {professorContent && (
-        <div className={`${styles.messageContainer} ${styles.receiverContainer}`}>
-          <div className={styles.avatarContainer}>
-            {getAvatar('professor')}
-            <Text 
-              type="secondary" 
-              className={styles.roleLabel}
-            >
-              {getRoleLabel('professor')}
-            </Text>
-          </div>
-          <div className={`${styles.message} ${styles.professorMessage}`}>
-            <div 
-              className={`${styles.messageContent}`}
-              style={themeStyles.professorBubble}
-            >
-              <MarkdownContentWithStyle content={professorContent} textStyle={themeStyles.professorText} />
-            </div>
-          </div>
-        </div>
-      )}
-    </>
+    </div>
   );
 });
 

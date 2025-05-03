@@ -16,7 +16,7 @@ const { Title } = Typography;
 
 // 默认欢迎消息
 const DEFAULT_WELCOME_MESSAGE = { 
-  text: '【IT专家】\n你好！我是卡皮巴拉IT专家，擅长软件开发和算法设计。有什么技术问题我可以帮助你的吗？\n\n【计算机教授点评】\n欢迎你！作为计算机学科的教授，我也会对IT专家的回答进行点评和补充，从学术和教育角度提供更深入的见解。请随时提问！', 
+  text: '你好！我是小卡，擅长软件开发和算法设计。有什么技术问题我可以帮助你的吗？', 
   isSender: false
 };
 
@@ -76,12 +76,22 @@ function getFriendlyErrorMessage(error) {
   };
 }
 
+// 防抖函数，用于减少函数调用频率
+function debounce(func, wait) {
+  let timeout;
+  return function(...args) {
+    const context = this;
+    clearTimeout(timeout);
+    timeout = setTimeout(() => func.apply(context, args), wait);
+  };
+}
+
 export default function ChatPage() {
   const [sessions, setSessions] = useState([DEFAULT_SESSION]);
   const [currentSessionId, setCurrentSessionId] = useState(DEFAULT_SESSION.id);
   const [messages, setMessages] = useState(DEFAULT_SESSION.messages);
   const [settings, setSettings] = useState(DEFAULT_SETTINGS);
-  const [inputText, setInputText] = useState('');
+  const [inputValue, setInputValue] = useState('');
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isTyping, setIsTyping] = useState(false);
   const [error, setError] = useState('');
@@ -89,12 +99,24 @@ export default function ChatPage() {
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   const [editingSessionId, setEditingSessionId] = useState(null);
   const [editingTitle, setEditingTitle] = useState('');
+  const [isClient, setIsClient] = useState(false);
   
   const chatMessagesRef = useRef(null);
+  
+  // 防抖更新消息，避免频繁状态更新
+  const debouncedSetMessages = useRef(
+    debounce((newMessages) => {
+      setMessages(newMessages);
+    }, 100)
+  ).current;
   
   // 主题
   const [currentTheme, setCurrentTheme] = useState('');
   const [primaryColor, setPrimaryColor] = useState('');
+  
+  // 流式处理状态变量
+  const rafId = useRef(null);
+  const finalUpdateTimeout = useRef(null);
   
   // 监听主题变化
   useEffect(() => {
@@ -122,9 +144,35 @@ export default function ChatPage() {
       window.addEventListener('storage', handleThemeChange);
       window.addEventListener('themeChange', handleThemeChange);
       
+      // 确保主题色变化会触发更新
+      const observeCSSVariableChanges = () => {
+        if (typeof window === 'undefined' || !window.MutationObserver) return null;
+        
+        const targetNode = document.documentElement;
+        const config = { attributes: true, attributeFilter: ['style'] };
+        
+        const callback = (mutations) => {
+          for (const mutation of mutations) {
+            if (mutation.attributeName === 'style') {
+              // 当CSS变量变化时，获取新的主题色值并更新
+              setPrimaryColor(getCurrentPrimaryColor());
+            }
+          }
+        };
+        
+        const observer = new MutationObserver(callback);
+        observer.observe(targetNode, config);
+        
+        return observer;
+      };
+      
+      // 启动CSS变量监听
+      const observer = observeCSSVariableChanges();
+      
       return () => {
         window.removeEventListener('storage', handleThemeChange);
         window.removeEventListener('themeChange', handleThemeChange);
+        if (observer) observer.disconnect();
       };
     }
   }, []);
@@ -139,6 +187,8 @@ export default function ChatPage() {
         if (!savedSettings.apiKey) {
           savedSettings.apiKey = DEFAULT_API_KEY;
         }
+        // 每次启动应用时，将温度重置为默认值0.5
+        savedSettings.temperature = 0.5;
         // 始终将主题设置为默认蓝色主题
         savedSettings.theme = DEFAULT_THEME;
         setSettings(savedSettings);
@@ -153,6 +203,22 @@ export default function ChatPage() {
       const themeObj = AVAILABLE_THEMES.find(t => t.key === DEFAULT_THEME);
       if (themeObj && document.documentElement) {
         document.documentElement.style.setProperty('--primary-color', themeObj.primary);
+        
+        // 将十六进制颜色转换为RGB
+        const hexToRgb = (hex) => {
+          const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+          const formattedHex = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
+          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(formattedHex);
+          return result ? 
+            `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
+            '24, 144, 255'; // 默认蓝色RGB
+        };
+        
+        // 更新RGB变量
+        const rgbValue = hexToRgb(themeObj.primary);
+        document.documentElement.style.setProperty('--primary-color-rgb', rgbValue);
+        
+        console.log('页面初始化: 设置RGB颜色值', rgbValue);
       }
       
       const savedSessions = loadSessions();
@@ -249,73 +315,74 @@ export default function ChatPage() {
 
   // 发送消息
   const sendMessage = async () => {
-    if (!inputText.trim()) return;
+    // 如果没有输入内容或者已经在typing状态，不发送
+    if (!inputValue.trim() || isTyping) return;
     
-    const userMessage = { text: inputText.trim(), isSender: true };
-    const aiMessage = { text: '', isSender: false };
+    // 获取当前API密钥和模型设置
+    const apiKey = settings.apiKey || '';
+    const model = settings.model || 'deepseek-ai/DeepSeek-V2.5';
+    const temperature = settings.temperature || 0.7;
+    
+    // 创建用户消息对象
+    const userMessage = { text: inputValue, isSender: true };
     
     // 清空输入框
-    setInputText('');
+    setInputValue('');
     
-    // 添加用户消息到聊天
-    const newMessages = [...messages, userMessage, aiMessage];
+    // 添加用户消息并添加一个空的AI消息作为占位符
+    const newMessages = [...messages, userMessage, { text: '', isSender: false }];
     setMessages(newMessages);
-    updateCurrentSession(newMessages.slice(0, -1)); // 不要立即保存空的AI消息
     
-    // 设置正在输入状态
+    // 立即将用户消息添加到历史记录
+    updateCurrentSession([...messages, userMessage]);
+    
+    // 确保聊天窗口滚动到底部
+    setTimeout(() => {
+      if (chatMessagesRef.current) {
+        chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+      }
+    }, 0);
+    
+    // 设置为typing状态
     setIsTyping(true);
     
     try {
-      // 用户可能在设置中自定义了API密钥和模型，从设置中获取
-      const { apiKey, model, temperature } = settings;
-      
-      // 流式响应的当前文本
+      // 跟踪流式响应过程中的文本
       let currentText = '';
-      // 缓冲区和上次更新时间戳，用于节流更新
       let buffer = '';
       let lastUpdateTime = Date.now();
-      // 优化更新间隔 - 增加到150ms以减轻渲染负担
-      const throttleInterval = 150;
-      // 批量更新大小 - 增加文本缓冲阈值
-      const batchSize = 25;
-      // 用于取消requestAnimationFrame的ID
-      let rafId = null;
       
-      // 更新消息的函数 - 使用requestAnimationFrame优化
+      // 调整批量大小，增强逐字输出效果
+      const batchSize = 12;
+      
+      // 节流间隔 - 控制更新频率，平衡流畅性和性能
+      const throttleInterval = 100;
+      
+      // 更新消息的函数
       const updateMessageWithText = (text) => {
         // 取消之前计划的任何更新
-        if (rafId) {
-          cancelAnimationFrame(rafId);
+        if (rafId.current) {
+          cancelAnimationFrame(rafId.current);
         }
         
-        // 使用requestAnimationFrame确保在下一帧渲染
-        rafId = requestAnimationFrame(() => {
+        // 使用requestAnimationFrame确保在浏览器绘制前进行更新
+        rafId.current = requestAnimationFrame(() => {
+          // 使用函数式更新确保状态更新正确
           setMessages(prev => {
-            // 创建消息数组的副本
+            // 如果messages数组为空或长度不匹配预期，不做更新
+            if (prev.length < 2) return prev;
+            
+            // 复制一份当前message列表
             const updated = [...prev];
-            // 找到最后一条AI消息并更新其文本
-            const lastAiMsgIndex = updated.length - 1;
-            if (lastAiMsgIndex >= 0 && !updated[lastAiMsgIndex].isSender) {
-              updated[lastAiMsgIndex] = {
-                ...updated[lastAiMsgIndex],
-                text: text
-              };
-            }
+            
+            // 更新最后一条消息（AI回复）的文本内容
+            updated[updated.length - 1] = { 
+              text, 
+              isSender: false 
+            };
+            
             return updated;
           });
-          
-          // 滚动到底部的逻辑
-          if (chatMessagesRef.current) {
-            // 检查是否在底部
-            const isScrolledToBottom = 
-              chatMessagesRef.current.scrollHeight - chatMessagesRef.current.clientHeight <= 
-              chatMessagesRef.current.scrollTop + 50;
-              
-            // 只有当用户在底部时才自动滚动
-            if (isScrolledToBottom) {
-              chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
-            }
-          }
         });
       };
       
@@ -330,8 +397,18 @@ export default function ChatPage() {
           // 当前时间
           const now = Date.now();
           
-          // 如果积累了足够的文本或者距离上次更新已经超过节流间隔，则更新界面
-          if (buffer.length > batchSize || now - lastUpdateTime > throttleInterval) {
+          // 检查是否含有Markdown语法标记
+          const hasMarkdown = /[#*`_~\[\](){}>!\-+\n]/.test(chunk);
+          
+          // 决定何时更新UI
+          // 1. 常规更新: 缓冲区足够大或时间间隔足够长
+          // 2. 特殊更新: 检测到Markdown语法时更及时更新
+          const shouldUpdate = 
+            buffer.length >= batchSize || 
+            now - lastUpdateTime > throttleInterval ||
+            (hasMarkdown && buffer.length > 3);
+          
+          if (shouldUpdate) {
             // 更新当前文本并清空缓冲区
             currentText += buffer;
             buffer = '';
@@ -339,32 +416,57 @@ export default function ChatPage() {
             // 更新时间戳
             lastUpdateTime = now;
             
-            // 更新UI
-            updateMessageWithText(currentText);
+            // 使用 requestAnimationFrame 与浏览器渲染周期同步
+            if (typeof window !== 'undefined') {
+              cancelAnimationFrame(rafId.current);
+              rafId.current = requestAnimationFrame(() => {
+                updateMessageWithText(currentText);
+              });
+            } else {
+              updateMessageWithText(currentText);
+            }
           }
         },
         (fullResponse) => {
           // 完成响应，确保任何缓冲区中剩余的文本都被添加
           currentText += buffer;
+          
+          // 立即标记不再输入
           setIsTyping(false);
           
           // 确保最终文本是完整的
           const finalMessages = [...messages, userMessage, { text: fullResponse, isSender: false }];
           
           // 清除任何正在进行的动画帧
-          if (rafId) {
-            cancelAnimationFrame(rafId);
+          if (rafId.current) {
+            cancelAnimationFrame(rafId.current);
+            rafId.current = null;
           }
           
-          // 使用setTimeout延迟最终更新以避免与流式更新冲突
-          setTimeout(() => {
-            setMessages(finalMessages);
-            updateCurrentSession(finalMessages);
+          // 使用防抖函数确保流式响应完全停止后才更新UI
+          clearTimeout(finalUpdateTimeout.current);
+          finalUpdateTimeout.current = setTimeout(() => {
+            // 使用双重缓冲区机制减少闪烁
+            setMessages(prev => {
+              // 确保最后一条消息内容与fullResponse完全匹配
+              if (prev.length > 0 && !prev[prev.length - 1].isSender) {
+                const updatedMessages = [...prev];
+                updatedMessages[updatedMessages.length - 1] = { text: fullResponse, isSender: false };
+                return updatedMessages;
+              }
+              return finalMessages;
+            });
             
-            // 最后一次滚动到底部
-            if (chatMessagesRef.current) {
-              chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
-            }
+            // 使用requestAnimationFrame确保UI更新与浏览器渲染同步
+            requestAnimationFrame(() => {
+              // 保存会话
+              updateCurrentSession(finalMessages);
+              
+              // 确保滚动到底部
+              if (chatMessagesRef.current) {
+                chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
+              }
+            });
           }, 100);
         },
         (error) => {
@@ -442,11 +544,26 @@ export default function ChatPage() {
         // 设置CSS变量
         document.documentElement.style.setProperty('--primary-color', themeObj.primary);
         
+        // 将十六进制颜色转换为RGB
+        const hexToRgb = (hex) => {
+          const shorthandRegex = /^#?([a-f\d])([a-f\d])([a-f\d])$/i;
+          const formattedHex = hex.replace(shorthandRegex, (m, r, g, b) => r + r + g + g + b + b);
+          const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(formattedHex);
+          return result ? 
+            `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
+            '24, 144, 255'; // 默认蓝色RGB
+        };
+        
+        // 更新RGB变量
+        const rgbValue = hexToRgb(themeObj.primary);
+        document.documentElement.style.setProperty('--primary-color-rgb', rgbValue);
+        
         // 创建一个临时样式表强制应用主题颜色
         const stylesheet = document.createElement('style');
         stylesheet.textContent = `
           :root {
             --primary-color: ${themeObj.primary} !important;
+            --primary-color-rgb: ${rgbValue} !important;
           }
         `;
         document.head.appendChild(stylesheet);
@@ -455,6 +572,9 @@ export default function ChatPage() {
         // 触发主题变化事件 - 确保所有组件都能接收到主题变化
         window.dispatchEvent(new CustomEvent('themeChange'));
       }
+      
+      // 触发头像更新事件，确保所有组件显示最新的头像
+      window.dispatchEvent(new CustomEvent('avatarChange'));
     }
     
     setError(''); // 清除错误消息
@@ -490,15 +610,37 @@ export default function ChatPage() {
     }
   };
   
+  // 关闭设置面板
+  const handleCloseSettings = () => {
+    setIsSettingsOpen(false);
+    
+    // 移除触发头像更新事件的代码，仅在Settings组件中保存时触发
+  };
+  
+  useEffect(() => {
+    setIsClient(true);
+    
+    // 清理函数
+    return () => {
+      if (rafId.current) {
+        cancelAnimationFrame(rafId.current);
+      }
+      if (finalUpdateTimeout.current) {
+        clearTimeout(finalUpdateTimeout.current);
+      }
+    };
+  }, []);
+
   return (
-    <Layout className={styles.main}>
-      <Sider width={250} theme="light" className={styles.sidebar}>
+    <Layout className={`${styles.main} ${styles.buttonWrapper}`}>
+      <Sider width={250} theme="light" className={`${styles.sidebar} ${styles.buttonWrapper}`}>
         <div className={styles.sidebarHeader}>
           <Title level={4}>聊天会话</Title>
           <Button
+            type="default"
             icon={<PlusOutlined />}
             onClick={createNewSession}
-            style={{ borderColor: primaryColor, color: primaryColor }}
+            className={styles.themeColorButton}
           >
             新会话
           </Button>
@@ -508,9 +650,8 @@ export default function ChatPage() {
           dataSource={sessions}
           renderItem={(session) => (
             <List.Item
-              className={`${styles.sessionItem} ${session.id === currentSessionId ? styles.active : ''}`}
+              className={`${styles.sessionItem} ${session.id === currentSessionId ? `${styles.active} ${styles.activeSessionItem}` : ''}`}
               onClick={() => switchSession(session.id)}
-              style={session.id === currentSessionId ? { borderColor: primaryColor, backgroundColor: `${primaryColor}10` } : {}}
             >
               <div className={styles.sessionTitle}>
                 {editingSessionId === session.id ? (
@@ -527,7 +668,7 @@ export default function ChatPage() {
               <div className={styles.sessionActions}>
                 <Tooltip title="编辑">
                   <EditOutlined
-                    className={styles.sessionAction}
+                    className={`${styles.sessionAction} ${session.id === currentSessionId ? styles.activeIcon : ''}`}
                     onClick={(e) => {
                       e.stopPropagation();
                       startEditing(session);
@@ -549,7 +690,7 @@ export default function ChatPage() {
         />
       </Sider>
       <Layout>
-        <Content className={styles.chatContainer}>
+        <Content className={`${styles.chatContainer} ${styles.buttonWrapper}`}>
           <div className={styles.messagesContainer} ref={chatMessagesRef}>
             {messages.map((message, index) => (
               <ChatMessage
@@ -559,15 +700,15 @@ export default function ChatPage() {
               />
             ))}
           </div>
-          <div className={`${styles.inputContainer} chat-input-fixed`}>
+          <div className={`${styles.inputContainer} ${styles.buttonWrapper} chat-input-fixed`}>
             <TextArea
-              value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
+              value={inputValue}
+              onChange={(e) => setInputValue(e.target.value)}
               onKeyPress={handleKeyPress}
               placeholder="输入消息..."
               autoSize={{ minRows: 1, maxRows: 4 }}
               className={styles.messageTextArea}
-              bordered={true}
+              variant="outlined"
               style={{ 
                 borderColor: '#d9d9d9',
                 borderRadius: '4px',
@@ -578,20 +719,16 @@ export default function ChatPage() {
               type="primary"
               icon={<SendOutlined />}
               onClick={sendMessage}
-              disabled={!inputText.trim()}
-              style={{ 
-                backgroundColor: inputText.trim() ? primaryColor : `${primaryColor}50`, 
-                borderColor: inputText.trim() ? primaryColor : `${primaryColor}50`,
-                color: 'white',
-                opacity: inputText.trim() ? 1 : 0.7
-              }}
+              disabled={!inputValue.trim()}
+              className={inputValue.trim() ? styles.sendThemeButton : styles.sendThemeButtonDisabled}
             >
               发送
             </Button>
             <Button
+              type="default"
               icon={<SettingOutlined />}
               onClick={() => setIsSettingsOpen(true)}
-              style={{ borderColor: primaryColor, color: primaryColor }}
+              className={styles.themeColorButton}
             >
               设置
             </Button>
@@ -601,7 +738,7 @@ export default function ChatPage() {
       <Drawer
         title="设置"
         placement="right"
-        onClose={() => setIsSettingsOpen(false)}
+        onClose={handleCloseSettings}
         open={isSettingsOpen}
         width={400}
       >
@@ -609,7 +746,7 @@ export default function ChatPage() {
           visible={isSettingsOpen}
           settings={settings}
           onSave={handleSaveSettings}
-          onClose={() => setIsSettingsOpen(false)}
+          onClose={handleCloseSettings}
         />
       </Drawer>
       {error && (
