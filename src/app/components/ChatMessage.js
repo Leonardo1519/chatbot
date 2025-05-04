@@ -147,6 +147,71 @@ const MarkdownContent = memo(({ content }) => {
 // 添加displayName以方便调试
 MarkdownContent.displayName = 'MarkdownContent';
 
+// 使用memo优化头像组件，防止在消息内容更新时重新渲染头像
+const MemoizedAvatar = memo(({ isSender, userAvatar }) => {
+  // 返回对应的头像
+  if (isSender) {
+    return userAvatar 
+      ? <Avatar 
+          src={userAvatar} 
+          size={40}
+          style={{
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+          }}
+        /> 
+      : <Avatar 
+          icon={<UserOutlined />} 
+          size={40}
+          style={{
+            transform: 'translateZ(0)',
+            backfaceVisibility: 'hidden',
+            WebkitBackfaceVisibility: 'hidden',
+          }}
+        />;
+  }
+  return (
+    <Avatar
+      src="/avatars/Capybara-1.jpg"
+      alt="小卡"
+      size={40}
+      style={{
+        transform: 'translateZ(0)',
+        backfaceVisibility: 'hidden',
+        WebkitBackfaceVisibility: 'hidden',
+      }}
+    />
+  );
+}, (prevProps, nextProps) => {
+  // 只有当用户头像变化时才重新渲染
+  if (prevProps.isSender !== nextProps.isSender) return false;
+  if (prevProps.isSender && nextProps.isSender) {
+    return prevProps.userAvatar === nextProps.userAvatar;
+  }
+  return true;
+});
+
+MemoizedAvatar.displayName = 'MemoizedAvatar';
+
+// 使用memo优化角色标签组件
+const MemoizedRoleLabel = memo(({ isSender }) => {
+  return (
+    <Text 
+      type="secondary" 
+      className={styles.roleLabel}
+      style={{
+        transform: 'translateZ(0)',
+        transition: 'none',
+      }}
+    >
+      {isSender ? '用户' : '小卡'}
+    </Text>
+  );
+}, (prevProps, nextProps) => prevProps.isSender === nextProps.isSender);
+
+MemoizedRoleLabel.displayName = 'MemoizedRoleLabel';
+
 // 使用memo优化整个ChatMessage组件
 const ChatMessage = memo(({ message, isTyping }) => {
   const [userAvatar, setUserAvatar] = useState(null);
@@ -309,26 +374,6 @@ const ChatMessage = memo(({ message, isTyping }) => {
     }
   }, [message.text, message.isSender]);
   
-  const getAvatar = () => {
-    if (message.isSender) {
-      return userAvatar 
-        ? <Avatar src={userAvatar} size={40} /> 
-        : <Avatar icon={<UserOutlined />} size={40} />;
-    }
-    return (
-      <Avatar
-        src="/avatars/Capybara-1.jpg"
-        alt="小卡"
-        size={40}
-      />
-    );
-  };
-
-  const getRoleLabel = () => {
-    if (message.isSender) return '用户';
-    return '小卡';
-  };
-
   // 给MarkdownContent组件添加样式
   const MarkdownContentWithStyle = memo(({ content, textStyle }) => {
     // 使用硬件加速和稳定渲染技术
@@ -407,13 +452,8 @@ const ChatMessage = memo(({ message, isTyping }) => {
     return (
       <div className={`${styles.messageContainer} ${styles.senderContainer}`}>
         <div className={styles.avatarContainer}>
-          {getAvatar()}
-          <Text 
-            type="secondary" 
-            className={styles.roleLabel}
-          >
-            {getRoleLabel()}
-          </Text>
+          <MemoizedAvatar isSender={message.isSender} userAvatar={userAvatar} />
+          <MemoizedRoleLabel isSender={message.isSender} />
         </div>
         <div className={`${styles.message} ${styles.sender}`}>
           <div 
@@ -431,13 +471,8 @@ const ChatMessage = memo(({ message, isTyping }) => {
   return (
     <div className={`${styles.messageContainer} ${styles.receiverContainer}`}>
       <div className={styles.avatarContainer}>
-        {getAvatar()}
-        <Text 
-          type="secondary" 
-          className={styles.roleLabel}
-        >
-          {getRoleLabel()}
-        </Text>
+        <MemoizedAvatar isSender={message.isSender} userAvatar={userAvatar} />
+        <MemoizedRoleLabel isSender={message.isSender} />
       </div>
       <div className={`${styles.message} ${styles.receiver}`}>
         <MarkdownContentWithStyle content={aiContent} textStyle={themeStyles.receiverText} />

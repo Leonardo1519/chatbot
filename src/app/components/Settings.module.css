@@ -20,6 +20,12 @@
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
   max-height: 80vh;
   overflow-y: auto;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.settingsPanel::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .settingsPanel h2 {

@@ -101,6 +101,11 @@ export default function ChatPage() {
   const [editingTitle, setEditingTitle] = useState('');
   const [isClient, setIsClient] = useState(false);
   
+  // 添加自动滚动控制状态
+  const [shouldAutoScroll, setShouldAutoScroll] = useState(true);
+  // 记录上次滚动位置
+  const lastScrollPositionRef = useRef({ scrollTop: 0, scrollHeight: 0, clientHeight: 0 });
+  
   const chatMessagesRef = useRef(null);
   
   // 防抖更新消息，避免频繁状态更新
@@ -336,12 +341,13 @@ export default function ChatPage() {
     // 立即将用户消息添加到历史记录
     updateCurrentSession([...messages, userMessage]);
     
+    // 每次发送新消息时，重置自动滚动标志为true
+    setShouldAutoScroll(true);
+    
     // 确保聊天窗口滚动到底部
-    setTimeout(() => {
-      if (chatMessagesRef.current) {
-        chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
-      }
-    }, 0);
+    requestAnimationFrame(() => {
+      scrollToBottom();
+    });
     
     // 设置为typing状态
     setIsTyping(true);
@@ -352,14 +358,23 @@ export default function ChatPage() {
       let buffer = '';
       let lastUpdateTime = Date.now();
       
-      // 调整批量大小，增强逐字输出效果
-      const batchSize = 12;
+      // 增大批量大小，减少更新频率
+      const batchSize = 24; // 从12改为24，每次更新更多字符
       
-      // 节流间隔 - 控制更新频率，平衡流畅性和性能
-      const throttleInterval = 100;
+      // 增加节流间隔，降低更新频率
+      const throttleInterval = 150; // 从100毫秒改为150毫秒
       
-      // 更新消息的函数
+      // 添加防抖变量，避免过于频繁的渲染
+      let pendingUpdate = false;
+      
+      // 更新消息的函数，使用防抖逻辑
       const updateMessageWithText = (text) => {
+        // 如果已有更新等待执行，不重复安排更新
+        if (pendingUpdate) return;
+        
+        // 标记为正在等待更新
+        pendingUpdate = true;
+        
         // 取消之前计划的任何更新
         if (rafId.current) {
           cancelAnimationFrame(rafId.current);
@@ -367,6 +382,9 @@ export default function ChatPage() {
         
         // 使用requestAnimationFrame确保在浏览器绘制前进行更新
         rafId.current = requestAnimationFrame(() => {
+          // 复位更新标记
+          pendingUpdate = false;
+          
           // 使用函数式更新确保状态更新正确
           setMessages(prev => {
             // 如果messages数组为空或长度不匹配预期，不做更新
@@ -383,6 +401,15 @@ export default function ChatPage() {
             
             return updated;
           });
+          
+          // 使用单独的requestAnimationFrame进行滚动操作
+          // 确保在DOM更新后再执行滚动
+          requestAnimationFrame(() => {
+            // 只有在shouldAutoScroll为true时才自动滚动
+            if (shouldAutoScroll && chatMessagesRef.current) {
+              scrollToBottom(false);
+            }
+          });
         });
       };
       
@@ -397,18 +424,18 @@ export default function ChatPage() {
           // 当前时间
           const now = Date.now();
           
-          // 检查是否含有Markdown语法标记
-          const hasMarkdown = /[#*`_~\[\](){}>!\-+\n]/.test(chunk);
+          // 检查是否含有Markdown语法标记，只针对重要标记进行特殊处理
+          const hasImportantMarkdown = /[#`>]|(\n\n)/.test(chunk); // 减少标记检测，只关注影响布局的重要标记
           
           // 决定何时更新UI
           // 1. 常规更新: 缓冲区足够大或时间间隔足够长
-          // 2. 特殊更新: 检测到Markdown语法时更及时更新
+          // 2. 特殊更新: 检测到重要Markdown语法时更及时更新
           const shouldUpdate = 
             buffer.length >= batchSize || 
             now - lastUpdateTime > throttleInterval ||
-            (hasMarkdown && buffer.length > 3);
+            (hasImportantMarkdown && buffer.length > 10); // 增加更新的阈值，减少更新频率
           
-          if (shouldUpdate) {
+          if (shouldUpdate && !pendingUpdate) { // 添加pendingUpdate检查，防止重叠更新
             // 更新当前文本并清空缓冲区
             currentText += buffer;
             buffer = '';
@@ -419,9 +446,10 @@ export default function ChatPage() {
             // 使用 requestAnimationFrame 与浏览器渲染周期同步
             if (typeof window !== 'undefined') {
               cancelAnimationFrame(rafId.current);
-              rafId.current = requestAnimationFrame(() => {
+              // 添加20ms延迟，使渲染更平滑
+              setTimeout(() => {
                 updateMessageWithText(currentText);
-              });
+              }, 20);
             } else {
               updateMessageWithText(currentText);
             }
@@ -457,15 +485,19 @@ export default function ChatPage() {
               return finalMessages;
             });
             
-            // 使用requestAnimationFrame确保UI更新与浏览器渲染同步
+            // 使用requestAnimationFrame嵌套确保DOM更新后再滚动到底部
             requestAnimationFrame(() => {
               // 保存会话
               updateCurrentSession(finalMessages);
               
-              // 确保滚动到底部
-              if (chatMessagesRef.current) {
-                chatMessagesRef.current.scrollTop = chatMessagesRef.current.scrollHeight;
-              }
+              // 强制开启自动滚动，确保响应结束时总是滚动到底部
+              setShouldAutoScroll(true);
+              
+              // 再次使用requestAnimationFrame确保在DOM更新后滚动
+              requestAnimationFrame(() => {
+                // 滚动到底部
+                scrollToBottom(true);
+              });
             });
           }, 100);
         },
@@ -630,6 +662,57 @@ export default function ChatPage() {
       }
     };
   }, []);
+
+  // 手动滚动到底部函数
+  const scrollToBottom = (smooth = true) => {
+    if (chatMessagesRef.current) {
+      chatMessagesRef.current.scrollTo({
+        top: chatMessagesRef.current.scrollHeight,
+        behavior: smooth ? 'smooth' : 'auto'
+      });
+    }
+  };
+
+  // 处理消息容器的滚动事件
+  const handleScroll = () => {
+    if (chatMessagesRef.current) {
+      const { scrollTop, scrollHeight, clientHeight } = chatMessagesRef.current;
+      
+      // 计算距离底部的距离
+      const distanceFromBottom = scrollHeight - scrollTop - clientHeight;
+      
+      // 如果用户手动向上滚动超过100像素，则暂停自动滚动
+      // 如果用户滚动到接近底部，则恢复自动滚动
+      if (distanceFromBottom > 100) {
+        setShouldAutoScroll(false);
+      } else if (distanceFromBottom < 20) {
+        setShouldAutoScroll(true);
+      }
+      
+      // 更新上次滚动位置
+      lastScrollPositionRef.current = { scrollTop, scrollHeight, clientHeight };
+    }
+  };
+
+  // 监听滚动事件
+  useEffect(() => {
+    const messagesContainer = chatMessagesRef.current;
+    if (messagesContainer) {
+      messagesContainer.addEventListener('scroll', handleScroll);
+      return () => {
+        messagesContainer.removeEventListener('scroll', handleScroll);
+      };
+    }
+  }, []);
+
+  // 当消息发生变化时自动滚动到底部（如果shouldAutoScroll为true）
+  useEffect(() => {
+    if (shouldAutoScroll && messages.length > 0) {
+      requestAnimationFrame(() => {
+        scrollToBottom(false); // 使用非平滑滚动，避免连续滚动时的抖动
+      });
+    }
+  }, [messages, shouldAutoScroll]);
 
   return (
     <Layout className={`${styles.main} ${styles.buttonWrapper}`}>

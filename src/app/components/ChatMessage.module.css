@@ -2,6 +2,27 @@
   display: flex;
   margin-bottom: 20px;
   gap: 12px;
+  
+  /* 添加硬件加速和渲染优化 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  
+  /* 使用内容包含属性，隔离布局影响 */
+  contain: layout style paint;
+  
+  /* 移除可能的过渡效果 */
+  transition: none !important;
+  animation: none !important;
+  
+  /* 提高渲染优先级 */
+  isolation: isolate;
+  
+  /* 防止布局抖动 */
+  min-height: 60px; /* 提供最小高度，防止内容变化时高度跳动 */
+  
+  /* 防止GPU合成层频繁变化 */
+  will-change: auto;
 }
 
 .senderContainer {
@@ -14,6 +35,29 @@
   align-items: center;
   gap: 4px;
   flex-shrink: 0;
+  
+  /* 增加硬件加速和渲染优化，防止闪烁 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  
+  /* 使用内容包含属性，防止子元素更新影响布局 */
+  contain: layout style;
+  
+  /* 移除隐式过渡效果 */
+  transition: none !important;
+  animation: none !important;
+  
+  /* 提高渲染优先级，使头像保持在单独的图层 */
+  isolation: isolate;
+  z-index: 2;
+  
+  /* 硬件加速 */
+  will-change: transform;
+  
+  /* 防止闪烁，固定尺寸和位置 */
+  position: relative;
+  width: 40px;
 }
 
 .roleLabel {
@@ -30,8 +74,14 @@
   max-width: 70%;
   border-radius: 8px;
   overflow: hidden;
-  /* 为消息气泡添加过渡效果 */
-  transition: all 0.3s ease;
+  /* 移除过渡效果，防止闪烁 */
+  transition: none !important;
+  
+  /* 增加渲染优化属性 */
+  transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  isolation: isolate;
 }
 
 /* 用户消息气泡 */
@@ -171,6 +221,12 @@
   border-radius: 5px;
   overflow-x: auto;
   margin: 0.5em 0;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.pre::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
 }
 
 .pre code {

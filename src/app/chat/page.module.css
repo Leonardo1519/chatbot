@@ -1,3 +1,13 @@
+/* 添加隐藏滚动条但保留滚动功能的通用类 */
+.hideScrollbar {
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
+}
+
+.hideScrollbar::-webkit-scrollbar {
+  display: none; /* Chrome, Safari */
+}
+
 .main {
   display: flex;
   flex-direction: column;
@@ -24,7 +34,31 @@
   border-radius: 8px;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   margin-bottom: 20px;
+  /* 应用隐藏滚动条类 */
+  composes: hideScrollbar;
+  
+  /* 添加平滑滚动效果 */
+  scroll-behavior: smooth;
+  
+  /* 优化滚动性能 */
+  -webkit-overflow-scrolling: touch; /* 在iOS上启用惯性滚动 */
+  
+  /* 防止iOS上的橡皮筋效果 */
+  overscroll-behavior: contain;
+  
+  /* 确保内容渲染时不会导致布局抖动 */
+  contain: strict;
+  
+  /* 确保滚动容器的内容不会溢出 */
+  overflow-x: hidden;
 }
+
+/* 删除之前的滚动条隐藏样式，因为现在使用 composes 继承了 hideScrollbar 类 */
+/*
+.messagesContainer::-webkit-scrollbar {
+  display: none;
+}
+*/
 
 .inputContainer {
   display: flex;
@@ -109,6 +143,7 @@
   border-right: 1px solid #f0f0f0;
   padding: 20px;
   overflow-y: auto;
+  composes: hideScrollbar;
 }
 
 .sidebarHeader {
@@ -250,6 +285,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 10px;
+  composes: hideScrollbar;
 }
 
 .historyItem {
@@ -368,6 +404,7 @@
   flex-direction: column;
   gap: 10px;
   background-color: #f8f9fa;
+  composes: hideScrollbar;
 }
 
 .inputArea {
@@ -387,6 +424,7 @@
   overflow-y: auto;
   max-height: 120px;
   min-height: 24px;
+  composes: hideScrollbar;
 }
 
 .messageInput:focus {
