@@ -73,6 +73,16 @@
   box-sizing: border-box;
 }
 
+.avatarContainer {
+  margin-bottom: 20px;
+}
+
+.frontPageAvatar {
+  object-fit: contain;
+  max-width: 100%;
+  height: auto;
+}
+
 .title {
   margin-bottom: 24px !important;
   color: #1a1a1a;
@@ -88,15 +98,20 @@
 }
 
 .description {
-  font-size: 16px;
-  color: #666;
-  margin-bottom: 48px;
+  font-size: 16px !important;
+  color: #666 !important;
+  margin-bottom: 48px !important;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 800px;
+  max-width: 1000px;
   margin-left: auto;
   margin-right: auto;
+}
+
+/* 覆盖 Ant Design Typography 组件的默认样式 */
+.description:global(.ant-typography) {
+  font-size: 16px !important;
 }
 
 .card {
@@ -116,13 +131,23 @@
   justify-content: center;
   text-align: center;
   padding: 32px 24px;
-  background: rgba(255, 255, 255, 0.95);
+  background: rgba(255, 255, 255, 0.95) !important;
   backdrop-filter: blur(10px);
-  border-radius: 20px;
+  border-radius: 24px !important;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
   transition: all 0.3s ease;
   border: 1px solid rgba(255, 255, 255, 0.2);
   box-sizing: border-box;
+  overflow: hidden !important;
+}
+
+/* 覆盖 Ant Design Card 组件的默认样式 */
+.featureCard:global(.ant-card) {
+  border-radius: 24px !important;
+}
+
+.featureCard :global(.ant-card-body) {
+  border-radius: 24px !important;
 }
 
 .featureCard:hover {

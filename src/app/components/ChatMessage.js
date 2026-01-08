@@ -173,8 +173,8 @@ const MemoizedAvatar = memo(({ isSender, userAvatar }) => {
   }
   return (
     <Avatar
-      src="/avatars/Capybara-1.jpg"
-      alt="小卡"
+      src="/avatars/avatar.png"
+      alt="圆圆"
       size={40}
       style={{
         transform: 'translateZ(0)',
@@ -205,7 +205,7 @@ const MemoizedRoleLabel = memo(({ isSender }) => {
         transition: 'none',
       }}
     >
-      {isSender ? '用户' : '小卡'}
+      {isSender ? '用户' : '圆圆'}
     </Text>
   );
 }, (prevProps, nextProps) => prevProps.isSender === nextProps.isSender);
